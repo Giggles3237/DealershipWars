@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="160" y1="18" x2="652" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1B0F29"/>
+      <stop offset="1" stop-color="#09040E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(587 86) rotate(142.122) scale(280.182 193.787)">
+      <stop stop-color="#D58CFF" stop-opacity=".78"/>
+      <stop offset="1" stop-color="#D58CFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="420" rx="28" fill="url(#bg)"/>
+  <rect width="800" height="420" rx="28" fill="url(#glow)"/>
+  <text x="82" y="106" fill="#F3DFFF" font-family="Arial, sans-serif" font-size="42" font-weight="700">SHOWROOM STAFF</text>
+  <circle cx="515" cy="160" r="62" fill="#261539" stroke="#DE96FF" stroke-width="8"/>
+  <circle cx="515" cy="145" r="23" fill="#F4D6C4"/>
+  <path d="M470 236c13-40 30-62 45-62s32 22 45 62" fill="#F4D6C4"/>
+  <path d="M450 282c10-48 34-78 65-78 32 0 57 30 66 78" fill="#1E7A61" stroke="#A8FFE9" stroke-width="4"/>
+  <rect x="110" y="155" width="230" height="145" rx="18" fill="#120A19" stroke="#AF67FF" stroke-width="4"/>
+  <path d="M146 252h156M146 218h156M146 184h156" stroke="#C47EFF" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="255" cy="252" r="26" fill="#120A19" stroke="#C47EFF" stroke-width="8"/>
+  <path d="m600 93 70 22-24 43-68-24z" fill="#F7C35B"/>
+  <path d="m624 111 19 7-12 21-18-7z" fill="#A47012"/>
+</svg>
