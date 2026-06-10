@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import PhaserGame from './game/PhaserGame';
 import GameCard from './components/GameCard';
 import { useGame, getCardTargets, canPlayAnything } from './game/store';
+import { DRAW_COUNT, PLAYS_PER_TURN } from './game/rules';
 import { unlockAudio } from './game/audio';
 
 function Scoreboard() {
@@ -58,7 +59,7 @@ function TitleScreen() {
       </p>
       <ul className="title-rules">
         <li>Teams of two sit across the table and share a 3-slot deal pipeline.</li>
-        <li>On your turn: draw 1 card, play 1 card, pass clockwise.</li>
+        <li>On your turn: draw {DRAW_COUNT} cards, play up to {PLAYS_PER_TURN} cards, pass clockwise.</li>
         <li>A deal with a Client, Vehicle, and Employee goes Pending — it delivers if it survives one rotation.</li>
         <li>Sabotage the other store, protect your own, and save the Dealer Principal for the perfect moment.</li>
       </ul>
@@ -181,15 +182,18 @@ function TurnHud() {
 
   const player = game.players[game.activePlayerIndex];
   const selectedCard = player.hand.find((card) => card.id === selectedCardId) || null;
+  const playsLeft = PLAYS_PER_TURN - game.playsUsed;
+  const canAct = game.hasDrawn && playsLeft > 0;
 
   const targets = useMemo(
-    () => (selectedCard ? getCardTargets(game, game.activePlayerIndex, selectedCard) : []),
-    [game, selectedCard]
+    () => (selectedCard && canAct ? getCardTargets(game, game.activePlayerIndex, selectedCard) : []),
+    [game, selectedCard, canAct]
   );
 
   const mustDraw = !game.hasDrawn;
-  const stuck = game.hasDrawn && !game.hasPlayed && !canPlayAnything(game, game.activePlayerIndex);
-  const canEnd = game.hasDrawn && (game.hasPlayed || stuck);
+  const stuck = game.hasDrawn && canAct && !canPlayAnything(game, game.activePlayerIndex);
+  const canEnd = game.hasDrawn && (game.playsUsed > 0 || stuck);
+  const previewCard = hoverCard || selectedCard;
 
   function playTo(target) {
     if (!selectedCard) {
@@ -208,61 +212,85 @@ function TurnHud() {
 
   return (
     <>
-      <div className="hud-actions">
-        {mustDraw ? (
-          <button className="primary-button" onClick={game.drawCard}>
-            Draw 1 Card
-          </button>
-        ) : null}
-        {!mustDraw && !game.hasPlayed && !selectedCard ? (
-          <span className="action-hint">{stuck ? 'No playable cards. End your turn.' : 'Pick a card from your hand.'}</span>
-        ) : null}
-        {selectedCard ? (
-          <div className="target-panel">
-            <span className="target-title">{selectedCard.name}:</span>
-            {targets.length ? (
-              targets.map((target, index) => (
-                <button key={index} className="secondary-button target-button" onClick={() => playTo(target)}>
-                  {target.label}
-                </button>
-              ))
-            ) : (
-              <span className="action-hint">
-                {selectedCard.effect === 'manufacturerAudit'
-                  ? 'Only playable in response to a Dealer Principal.'
-                  : 'No valid target right now.'}
-              </span>
-            )}
-            <button className="secondary-button" onClick={() => setSelectedCardId('')}>
-              Cancel
+      <div className="hud-bottom">
+        <div className="hud-actions">
+          {mustDraw ? (
+            <button className="primary-button" onClick={game.drawCard}>
+              Draw {DRAW_COUNT} Cards
             </button>
-          </div>
-        ) : null}
-        <button className="secondary-button end-turn" onClick={game.endTurn} disabled={!canEnd}>
-          End Turn
-        </button>
+          ) : (
+            <span className="plays-left">
+              Plays left: {playsLeft > 0 ? '🂠'.repeat(playsLeft) : '—'} {playsLeft}
+            </span>
+          )}
+          {!mustDraw && canAct && !selectedCard ? (
+            <span className="action-hint">{stuck ? 'No playable cards. End your turn.' : 'Pick a card from your hand.'}</span>
+          ) : null}
+          {selectedCard && canAct ? (
+            <div className="target-panel">
+              <span className="target-title">{selectedCard.name}:</span>
+              {targets.length ? (
+                targets.map((target, index) => (
+                  <button key={index} className="secondary-button target-button" onClick={() => playTo(target)}>
+                    {target.label}
+                  </button>
+                ))
+              ) : (
+                <span className="action-hint">
+                  {selectedCard.effect === 'manufacturerAudit'
+                    ? 'Only playable in response to a Dealer Principal.'
+                    : 'No valid target right now.'}
+                </span>
+              )}
+              <button className="secondary-button" onClick={() => setSelectedCardId('')}>
+                Cancel
+              </button>
+            </div>
+          ) : null}
+          <button className="secondary-button end-turn" onClick={game.endTurn} disabled={!canEnd}>
+            End Turn
+          </button>
+        </div>
+
+        <div className="hud-hand">
+          {player.hand.map((card) => (
+            <GameCard
+              key={card.id}
+              card={card}
+              compact
+              selected={selectedCardId === card.id}
+              onClick={() => setSelectedCardId(selectedCardId === card.id ? '' : card.id)}
+              onHover={setHoverCard}
+            />
+          ))}
+          {!player.hand.length ? <p className="empty-hand">Empty hand. The struggle is real.</p> : null}
+        </div>
       </div>
 
-      <div className="hud-hand">
-        {player.hand.map((card) => (
-          <GameCard
-            key={card.id}
-            card={card}
-            compact
-            selected={selectedCardId === card.id}
-            onClick={game.hasDrawn && !game.hasPlayed ? () => setSelectedCardId(selectedCardId === card.id ? '' : card.id) : null}
-            onHover={setHoverCard}
-          />
-        ))}
-        {!player.hand.length ? <p className="empty-hand">Empty hand. The struggle is real.</p> : null}
-      </div>
-
-      {hoverCard ? (
+      {previewCard ? (
         <div className="hover-preview">
-          <GameCard card={hoverCard} />
+          <GameCard card={previewCard} />
         </div>
       ) : null}
     </>
+  );
+}
+
+function InspectOverlay() {
+  const card = useGame((state) => state.inspectedCard);
+  const clearInspected = useGame((state) => state.clearInspected);
+
+  if (!card) {
+    return null;
+  }
+
+  return (
+    <div className="inspect-overlay" onClick={clearInspected}>
+      <div className="inspect-card">
+        <GameCard card={card} />
+      </div>
+      <p className="inspect-hint">Tap anywhere to close</p>
+    </div>
   );
 }
 
@@ -283,6 +311,7 @@ function App() {
         {phase === 'turn' && !reaction ? <TurnHud /> : null}
         {reaction ? <ReactionOverlay /> : null}
         {phase === 'gameover' ? <GameOverOverlay /> : null}
+        <InspectOverlay />
       </div>
     </div>
   );

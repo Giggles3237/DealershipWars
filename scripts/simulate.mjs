@@ -7,7 +7,7 @@ const storeModule = await server.ssrLoadModule('/src/game/store.js');
 const rulesModule = await server.ssrLoadModule('/src/game/rules.js');
 
 const { useGame, getCardTargets, canPlayAnything } = storeModule;
-const { DEAL_STATUS } = rulesModule;
+const { DEAL_STATUS, PLAYS_PER_TURN } = rulesModule;
 
 function countCards(state) {
   let total = state.deck.length + state.discard.length;
@@ -82,7 +82,7 @@ for (let run = 0; run < 50; run += 1) {
       continue;
     }
 
-    if (!state.hasPlayed) {
+    if (state.playsUsed < PLAYS_PER_TURN) {
       const player = state.players[state.activePlayerIndex];
       let played = false;
 
@@ -113,11 +113,17 @@ for (let run = 0; run < 50; run += 1) {
 
       if (played) {
         const after = useGame.getState();
-        assert(after.hasPlayed || after.phase === 'gameover', 'play action should set hasPlayed', after);
+        assert(
+          after.playsUsed === state.playsUsed + 1 || after.reaction || after.phase === 'gameover',
+          'play action should consume one play',
+          after
+        );
         continue;
       }
 
-      assert(!canPlayAnything(state, state.activePlayerIndex), 'bot found nothing but store says playable exists', state);
+      if (state.playsUsed === 0) {
+        assert(!canPlayAnything(state, state.activePlayerIndex), 'bot found nothing but store says playable exists', state);
+      }
     }
 
     const before = useGame.getState();

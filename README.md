@@ -11,7 +11,7 @@ avatars, deal slots) with a React HUD, all driven by a single Zustand game store
 
 - **4 players, 2 teams.** Partners sit opposite each other and share a profit score and a
   3-slot deal pipeline.
-- **On your turn:** draw 1 card, play 1 card, pass clockwise (pass-the-device local play).
+- **On your turn:** draw 2 cards, play up to 2 cards, pass clockwise (pass-the-device local play).
 - **Build deals:** a deal needs a Client + Vehicle + Employee. Once complete it goes
   **Pending Delivery** and must survive until the start of your team's next turn. If it
   survives, it delivers and the profit is banked.
