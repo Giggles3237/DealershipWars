@@ -65,29 +65,37 @@ for (let turn = 0; turn < 8; turn += 1) {
 
   await dismissInspect();
 
-  if (await clickIfPossible(page.getByRole('button', { name: 'Draw 1 Card' }))) {
-    await page.waitForTimeout(700);
+  if (await clickIfPossible(page.getByRole('button', { name: /Draw \d+ Cards?/ }))) {
+    await page.waitForTimeout(900);
   }
 
-  // Try each hand card until one offers a target.
-  const handCards = page.locator('.hud-hand .game-card');
-  const count = await handCards.count();
+  // Try hand cards until the play budget is spent or nothing has a target.
+  for (let play = 0; play < 2; play += 1) {
+    const handCards = page.locator('.hud-hand .game-card');
+    const count = await handCards.count();
+    let played = false;
 
-  for (let index = 0; index < count; index += 1) {
-    await dismissInspect();
+    for (let index = 0; index < count; index += 1) {
+      await dismissInspect();
 
-    if (!(await clickIfPossible(handCards.nth(index), 1500))) {
-      continue;
+      if (!(await clickIfPossible(handCards.nth(index), 1500))) {
+        continue;
+      }
+
+      await page.waitForTimeout(250);
+
+      if (await clickIfPossible(page.locator('.target-button').first())) {
+        await page.waitForTimeout(1100);
+        played = true;
+        break;
+      }
+
+      await clickIfPossible(page.locator('.hud-actions').getByRole('button', { name: 'Cancel', exact: true }));
     }
 
-    await page.waitForTimeout(250);
-
-    if (await clickIfPossible(page.locator('.target-button').first())) {
-      await page.waitForTimeout(1100);
+    if (!played) {
       break;
     }
-
-    await clickIfPossible(page.locator('.hud-actions').getByRole('button', { name: 'Cancel', exact: true }));
   }
 
   if (turn === 3) {

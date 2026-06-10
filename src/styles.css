@@ -310,6 +310,17 @@ button {
   color: #9dafc8;
 }
 
+.plays-left {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f7c76c;
+  background: rgba(247, 199, 108, 0.12);
+  border: 1px solid rgba(247, 199, 108, 0.4);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  white-space: nowrap;
+}
+
 .target-panel {
   display: flex;
   align-items: center;

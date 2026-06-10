@@ -4,6 +4,9 @@ export const WINNING_PROFIT = 100;
 export const STARTING_HAND_SIZE = 5;
 export const PLAYERS_PER_GAME = 4;
 export const DEAL_SLOTS_PER_TEAM = 3;
+// Turn economy: tweak these two to retune game tempo.
+export const DRAW_COUNT = 2;
+export const PLAYS_PER_TURN = 2;
 
 export const DEAL_STATUS = {
   BUILDING: 'building',

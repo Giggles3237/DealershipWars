@@ -37,9 +37,51 @@ const INDICATOR_COLORS = {
   protected: 0x5aa9ff
 };
 
-const SKIN_TONES = [0xf2c9a0, 0xc68642, 0xe0ac69, 0xf8d9b0];
-const HAIR_COLORS = [0x3b2b20, 0x111111, 0x8a4b22, 0x999999];
-const SHIRT_COLORS = [0x2f6f4e, 0xb8503e, 0x2d5e9e, 0x7a4ba8];
+// One distinct look per persona: hair style, outfit, and accessories.
+const PERSONA_STYLES = [
+  {
+    // Closer Chris: slick hair, sharp blazer, power tie.
+    skin: 0xf2c9a0,
+    hair: 0x3b2b20,
+    shirt: 0xfdf6e8,
+    blazer: 0x1f4d38,
+    iris: 0x4a6b3a,
+    style: 'slick',
+    tie: 0xc23b2e
+  },
+  {
+    // Finance Fran: auburn bob, glasses, burgundy blazer.
+    skin: 0xe8b88a,
+    hair: 0x8a4b22,
+    shirt: 0xf2e3da,
+    blazer: 0x8e3b32,
+    iris: 0x5b3a24,
+    style: 'bob',
+    glasses: true,
+    earrings: true
+  },
+  {
+    // Desk Dana: tidy bun, BDC headset, navy blazer with lanyard.
+    skin: 0xc68642,
+    hair: 0x161616,
+    shirt: 0xe8eef7,
+    blazer: 0x274d80,
+    iris: 0x2e2218,
+    style: 'bun',
+    headset: true,
+    lanyard: true
+  },
+  {
+    // Lot Larry: bald with gray sides, mustache, purple polo.
+    skin: 0xf8d9b0,
+    hair: 0x9a9a9a,
+    shirt: 0x6a3f96,
+    blazer: null,
+    iris: 0x3a5b80,
+    style: 'bald',
+    mustache: true
+  }
+];
 
 export default class TableScene extends Phaser.Scene {
   constructor() {
@@ -256,37 +298,168 @@ export default class TableScene extends Phaser.Scene {
 
   buildAvatar(x, y, index, player) {
     const container = this.add.container(x, y).setDepth(6);
-    const skin = SKIN_TONES[index];
+    const style = PERSONA_STYLES[index];
+    const skin = style.skin;
+    const skinShade = Phaser.Display.Color.IntegerToColor(skin).darken(18).color;
     const team = TEAM_CONFIG.find((entry) => entry.id === player.teamId);
 
-    const torso = this.add.graphics();
-    torso.fillStyle(SHIRT_COLORS[index], 1);
-    torso.fillRoundedRect(-34, 22, 68, 52, 16);
-    torso.fillStyle(0xffffff, 0.9);
-    torso.fillTriangle(-8, 24, 8, 24, 0, 40);
+    // Seat shadow and chair back give the character weight at the table.
+    const shadow = this.add.ellipse(0, 92, 132, 26, 0x000000, 0.28);
+    const chair = this.add.graphics();
+    chair.fillStyle(0x20303f, 1);
+    chair.fillRoundedRect(-46, 6, 92, 84, 20);
+    chair.fillStyle(0x182531, 1);
+    chair.fillRoundedRect(-46, 6, 92, 16, { tl: 20, tr: 20, bl: 0, br: 0 });
 
+    // Torso: blazer over shirt, or a polo; collar, tie or lanyard.
+    const torso = this.add.graphics();
+    const jacket = style.blazer ?? style.shirt;
+    torso.fillStyle(jacket, 1);
+    torso.fillRoundedRect(-38, 22, 76, 56, { tl: 24, tr: 24, bl: 14, br: 14 });
+    torso.fillStyle(Phaser.Display.Color.IntegerToColor(jacket).darken(20).color, 1);
+    torso.fillRoundedRect(-38, 60, 76, 18, { tl: 0, tr: 0, bl: 14, br: 14 });
+
+    if (style.blazer) {
+      torso.fillStyle(style.shirt, 1);
+      torso.fillTriangle(-13, 24, 13, 24, 0, 52);
+      torso.fillStyle(Phaser.Display.Color.IntegerToColor(style.blazer).darken(14).color, 1);
+      torso.fillTriangle(-13, 23, -2, 23, -15, 44);
+      torso.fillTriangle(13, 23, 2, 23, 15, 44);
+    } else {
+      torso.fillStyle(Phaser.Display.Color.IntegerToColor(style.shirt).darken(16).color, 1);
+      torso.fillTriangle(-12, 23, 0, 23, -13, 36);
+      torso.fillTriangle(12, 23, 0, 23, 13, 36);
+    }
+
+    if (style.tie) {
+      torso.fillStyle(style.tie, 1);
+      torso.fillTriangle(-4, 26, 4, 26, 0, 33);
+      torso.fillTriangle(-3, 32, 3, 32, 0, 54);
+    }
+
+    if (style.lanyard) {
+      torso.lineStyle(2, 0xd8b13c, 1);
+      torso.lineBetween(-10, 25, -4, 48);
+      torso.lineBetween(10, 25, 4, 48);
+      torso.fillStyle(0xffffff, 1);
+      torso.fillRoundedRect(-7, 47, 14, 17, 2);
+      torso.fillStyle(team ? Phaser.Display.Color.HexStringToColor(team.accent).color : 0x888888, 1);
+      torso.fillRect(-7, 47, 14, 4);
+    }
+
+    // Hands resting on the table, with shirt cuffs.
+    const cuffs = [
+      this.add.rectangle(-40, 58, 14, 12, jacket),
+      this.add.rectangle(40, 58, 14, 12, jacket)
+    ];
     const hands = [
       this.add.circle(-40, 66, 9, skin),
       this.add.circle(40, 66, 9, skin)
     ];
 
+    // Head group: everything that nods/tilts together.
     const headGroup = this.add.container(0, 0);
-    const hair = this.add.ellipse(0, -14, 56, 34, HAIR_COLORS[index]);
+    const neck = this.add.rectangle(0, 22, 16, 12, skinShade);
+    const ears = [
+      this.add.circle(-26, 2, 6, skin),
+      this.add.circle(26, 2, 6, skin)
+    ];
     const head = this.add.circle(0, 0, 27, skin);
+
+    const hairGraphics = this.add.graphics();
+    hairGraphics.fillStyle(style.hair, 1);
+
+    if (style.style === 'slick') {
+      hairGraphics.fillEllipse(0, -15, 56, 28);
+      hairGraphics.fillEllipse(-18, -8, 18, 24);
+      hairGraphics.fillTriangle(8, -26, 26, -18, 22, -6);
+    } else if (style.style === 'bob') {
+      hairGraphics.fillEllipse(0, -10, 64, 44);
+      hairGraphics.fillEllipse(-24, 6, 16, 34);
+      hairGraphics.fillEllipse(24, 6, 16, 34);
+      hairGraphics.fillEllipse(0, -18, 58, 24);
+    } else if (style.style === 'bun') {
+      hairGraphics.fillEllipse(0, -16, 56, 26);
+      hairGraphics.fillCircle(0, -30, 9);
+      hairGraphics.fillEllipse(-22, -4, 12, 18);
+      hairGraphics.fillEllipse(22, -4, 12, 18);
+    } else {
+      // bald: gray side patches only
+      hairGraphics.fillEllipse(-23, -2, 12, 18);
+      hairGraphics.fillEllipse(23, -2, 12, 18);
+    }
+
+    // Face: cheeks, nose, eyes with irises and highlights, brows.
+    const cheeks = [
+      this.add.ellipse(-14, 8, 10, 6, 0xd96d5a, 0.22),
+      this.add.ellipse(14, 8, 10, 6, 0xd96d5a, 0.22)
+    ];
+    const nose = this.add.ellipse(0, 4, 7, 9, skinShade, 0.85);
     const eyes = [
-      this.add.ellipse(-10, -4, 9, 9, 0xffffff),
-      this.add.ellipse(10, -4, 9, 9, 0xffffff)
+      this.add.ellipse(-10, -4, 11, 10, 0xffffff),
+      this.add.ellipse(10, -4, 11, 10, 0xffffff)
+    ];
+    const irises = [
+      this.add.circle(-10, -4, 4, style.iris),
+      this.add.circle(10, -4, 4, style.iris)
     ];
     const pupils = [
-      this.add.circle(-10, -4, 3, 0x111111),
-      this.add.circle(10, -4, 3, 0x111111)
+      this.add.circle(-10, -4, 2, 0x111111),
+      this.add.circle(10, -4, 2, 0x111111)
     ];
-    const mouth = this.add.ellipse(0, 12, 16, 5, 0x7a3b2e);
-    headGroup.add([hair, head, ...eyes, ...pupils, mouth]);
+    const glints = [
+      this.add.circle(-11.5, -5.5, 1.2, 0xffffff),
+      this.add.circle(8.5, -5.5, 1.2, 0xffffff)
+    ];
+    const brows = [
+      this.add.rectangle(-10, -13, 13, 3.4, style.hair).setOrigin(0.5),
+      this.add.rectangle(10, -13, 13, 3.4, style.hair).setOrigin(0.5)
+    ];
+    const mouth = this.add.ellipse(0, 13, 16, 5, 0x7a3b2e);
 
-    const tagBackground = this.add.rectangle(0, 96, 124, 24, 0x09131f, 0.85).setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(team.accent).color, 0.9);
+    headGroup.add([neck, ...ears, head, hairGraphics, ...cheeks, nose, ...eyes, ...irises, ...pupils, ...glints, ...brows, mouth]);
+
+    if (style.mustache) {
+      const mustache = this.add.graphics();
+      mustache.fillStyle(style.hair, 1);
+      mustache.fillEllipse(-5, 9.5, 11, 4.5);
+      mustache.fillEllipse(5, 9.5, 11, 4.5);
+      headGroup.add(mustache);
+    }
+
+    if (style.glasses) {
+      const glasses = this.add.graphics();
+      glasses.lineStyle(2, 0x2b2b2b, 1);
+      glasses.strokeCircle(-10, -4, 8);
+      glasses.strokeCircle(10, -4, 8);
+      glasses.lineBetween(-2, -4, 2, -4);
+      glasses.lineBetween(-18, -5, -25, -2);
+      glasses.lineBetween(18, -5, 25, -2);
+      headGroup.add(glasses);
+    }
+
+    if (style.earrings) {
+      headGroup.add(this.add.circle(-26, 9, 2.4, 0xf2c14e));
+      headGroup.add(this.add.circle(26, 9, 2.4, 0xf2c14e));
+    }
+
+    if (style.headset) {
+      const headset = this.add.graphics();
+      headset.lineStyle(3.5, 0x33414f, 1);
+      headset.beginPath();
+      headset.arc(0, -4, 31, Phaser.Math.DegToRad(205), Phaser.Math.DegToRad(335), false);
+      headset.strokePath();
+      headset.fillStyle(0x33414f, 1);
+      headset.fillCircle(-28, 4, 5);
+      headset.lineStyle(2.5, 0x33414f, 1);
+      headset.lineBetween(-27, 8, -14, 16);
+      headset.fillCircle(-13, 16.5, 3);
+      headGroup.add(headset);
+    }
+
+    const tagBackground = this.add.rectangle(0, 102, 130, 24, 0x09131f, 0.85).setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(team.accent).color, 0.9);
     const tag = this.add
-      .text(0, 96, `${player.persona}`, {
+      .text(0, 102, `${player.persona}`, {
         fontFamily: 'Trebuchet MS, sans-serif',
         fontSize: '12px',
         fontStyle: 'bold',
@@ -294,9 +467,9 @@ export default class TableScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    container.add([torso, ...hands, headGroup, tagBackground, tag]);
+    container.add([shadow, chair, torso, ...cuffs, ...hands, headGroup, tagBackground, tag]);
 
-    return { container, headGroup, eyes, pupils, mouth, hands, baseY: y, index };
+    return { container, headGroup, eyes, pupils, brows, mouth, hands, baseY: y, index };
   }
 
   startIdle(avatar, index) {
@@ -348,12 +521,13 @@ export default class TableScene extends Phaser.Scene {
       return;
     }
 
-    const { container, headGroup, eyes, mouth, hands } = avatar;
+    const { container, headGroup, eyes, brows, mouth, hands } = avatar;
 
     const reset = () => {
       this.tweens.add({ targets: container, y: avatar.baseY, angle: 0, duration: 200 });
       this.tweens.add({ targets: headGroup, angle: 0, duration: 200 });
       this.tweens.add({ targets: eyes, scale: 1, duration: 200 });
+      this.tweens.add({ targets: brows, y: -13, angle: 0, duration: 200 });
       this.tweens.add({ targets: mouth, scaleX: 1, scaleY: 1, duration: 200 });
       this.tweens.add({ targets: hands[0], x: -40, y: 66, duration: 220 });
       this.tweens.add({ targets: hands[1], x: 40, y: 66, duration: 220 });
@@ -361,22 +535,29 @@ export default class TableScene extends Phaser.Scene {
 
     if (mood === 'happy') {
       this.tweens.add({ targets: mouth, scaleX: 1.7, scaleY: 1.6, duration: 150 });
+      this.tweens.add({ targets: brows, y: -15, duration: 150 });
       this.tweens.add({ targets: container, y: avatar.baseY - 8, duration: 160, yoyo: true });
       this.tweens.add({ targets: hands[1], y: 30, x: 46, duration: 180, yoyo: false }); // thumbs-up-ish
     } else if (mood === 'angry') {
       this.tweens.add({ targets: headGroup, x: { from: -5, to: 5 }, duration: 70, yoyo: true, repeat: 5, onComplete: () => (headGroup.x = 0) });
       this.tweens.add({ targets: mouth, scaleX: 0.6, scaleY: 0.6, duration: 120 });
+      this.tweens.add({ targets: brows[0], angle: 16, y: -11, duration: 120 });
+      this.tweens.add({ targets: brows[1], angle: -16, y: -11, duration: 120 });
     } else if (mood === 'surprised') {
       this.tweens.add({ targets: eyes, scale: 1.7, duration: 140 });
+      this.tweens.add({ targets: brows, y: -18, duration: 140 });
       this.tweens.add({ targets: mouth, scaleX: 0.7, scaleY: 2.6, duration: 140 });
     } else if (mood === 'celebrate') {
       this.tweens.add({ targets: container, y: avatar.baseY - 18, duration: 180, yoyo: true, repeat: 2 });
       this.tweens.add({ targets: hands[0], x: -46, y: -8, duration: 180 });
       this.tweens.add({ targets: hands[1], x: 46, y: -8, duration: 180 });
+      this.tweens.add({ targets: brows, y: -17, duration: 160 });
       this.tweens.add({ targets: mouth, scaleX: 1.8, scaleY: 2, duration: 160 });
     } else if (mood === 'defeated') {
       this.tweens.add({ targets: hands[1], x: 6, y: -4, duration: 240 });
       this.tweens.add({ targets: headGroup, angle: 9, duration: 240 });
+      this.tweens.add({ targets: brows[0], angle: -14, y: -15, duration: 220 });
+      this.tweens.add({ targets: brows[1], angle: 14, y: -15, duration: 220 });
       this.tweens.add({ targets: mouth, scaleX: 0.7, scaleY: 0.6, duration: 200 });
     }
 

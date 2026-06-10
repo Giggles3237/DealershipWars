@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import PhaserGame from './game/PhaserGame';
 import GameCard from './components/GameCard';
 import { useGame, getCardTargets, canPlayAnything } from './game/store';
+import { DRAW_COUNT, PLAYS_PER_TURN } from './game/rules';
 import { unlockAudio } from './game/audio';
 
 function Scoreboard() {
@@ -58,7 +59,7 @@ function TitleScreen() {
       </p>
       <ul className="title-rules">
         <li>Teams of two sit across the table and share a 3-slot deal pipeline.</li>
-        <li>On your turn: draw 1 card, play 1 card, pass clockwise.</li>
+        <li>On your turn: draw {DRAW_COUNT} cards, play up to {PLAYS_PER_TURN} cards, pass clockwise.</li>
         <li>A deal with a Client, Vehicle, and Employee goes Pending — it delivers if it survives one rotation.</li>
         <li>Sabotage the other store, protect your own, and save the Dealer Principal for the perfect moment.</li>
       </ul>
@@ -181,7 +182,8 @@ function TurnHud() {
 
   const player = game.players[game.activePlayerIndex];
   const selectedCard = player.hand.find((card) => card.id === selectedCardId) || null;
-  const canAct = game.hasDrawn && !game.hasPlayed;
+  const playsLeft = PLAYS_PER_TURN - game.playsUsed;
+  const canAct = game.hasDrawn && playsLeft > 0;
 
   const targets = useMemo(
     () => (selectedCard && canAct ? getCardTargets(game, game.activePlayerIndex, selectedCard) : []),
@@ -189,8 +191,8 @@ function TurnHud() {
   );
 
   const mustDraw = !game.hasDrawn;
-  const stuck = game.hasDrawn && !game.hasPlayed && !canPlayAnything(game, game.activePlayerIndex);
-  const canEnd = game.hasDrawn && (game.hasPlayed || stuck);
+  const stuck = game.hasDrawn && canAct && !canPlayAnything(game, game.activePlayerIndex);
+  const canEnd = game.hasDrawn && (game.playsUsed > 0 || stuck);
   const previewCard = hoverCard || selectedCard;
 
   function playTo(target) {
@@ -214,10 +216,14 @@ function TurnHud() {
         <div className="hud-actions">
           {mustDraw ? (
             <button className="primary-button" onClick={game.drawCard}>
-              Draw 1 Card
+              Draw {DRAW_COUNT} Cards
             </button>
-          ) : null}
-          {!mustDraw && !game.hasPlayed && !selectedCard ? (
+          ) : (
+            <span className="plays-left">
+              Plays left: {playsLeft > 0 ? '🂠'.repeat(playsLeft) : '—'} {playsLeft}
+            </span>
+          )}
+          {!mustDraw && canAct && !selectedCard ? (
             <span className="action-hint">{stuck ? 'No playable cards. End your turn.' : 'Pick a card from your hand.'}</span>
           ) : null}
           {selectedCard && canAct ? (

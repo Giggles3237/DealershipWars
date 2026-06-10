@@ -3,8 +3,10 @@ import cardsData from '../data/cards.json';
 import {
   DEAL_SLOTS_PER_TEAM,
   DEAL_STATUS,
+  DRAW_COUNT,
   PLAYERS_PER_GAME,
   PLAYER_SEATS,
+  PLAYS_PER_TURN,
   STARTING_HAND_SIZE,
   TEAM_CONFIG,
   WINNING_PROFIT,
@@ -301,7 +303,7 @@ function createInitialState() {
     turnNumber: 1,
     phase: 'title',
     hasDrawn: false,
-    hasPlayed: false,
+    playsUsed: 0,
     reaction: null,
     winnerTeamId: null,
     inspectedCard: null,
@@ -379,10 +381,16 @@ export const useGame = create((set, get) => ({
       const fxList = [...state.fx];
       const log = [...state.log];
 
-      if (deck.length) {
+      let drawn = 0;
+
+      while (deck.length && drawn < DRAW_COUNT) {
         player.hand.push(deck.shift());
         pushFx(fxList, 'draw', { playerIndex: state.activePlayerIndex });
-        log.push(`${player.name} draws a card.`);
+        drawn += 1;
+      }
+
+      if (drawn) {
+        log.push(`${player.name} draws ${drawn} card${drawn > 1 ? 's' : ''}.`);
       } else {
         log.push(`The deck is empty. ${player.name} draws nothing.`);
       }
@@ -393,7 +401,7 @@ export const useGame = create((set, get) => ({
 
   playCardToSlot(cardId, slotIndex) {
     set((state) => {
-      if (state.phase !== 'turn' || !state.hasDrawn || state.hasPlayed || state.reaction) {
+      if (state.phase !== 'turn' || !state.hasDrawn || state.playsUsed >= PLAYS_PER_TURN || state.reaction) {
         return state;
       }
 
@@ -467,7 +475,7 @@ export const useGame = create((set, get) => ({
         players,
         teams,
         deck,
-        hasPlayed: true,
+        playsUsed: state.playsUsed + 1,
         fx: fxList.slice(-40),
         log: log.slice(-30)
       };
@@ -478,7 +486,7 @@ export const useGame = create((set, get) => ({
 
   playEvent(cardId, target) {
     set((state) => {
-      if (state.phase !== 'turn' || !state.hasDrawn || state.hasPlayed || state.reaction) {
+      if (state.phase !== 'turn' || !state.hasDrawn || state.playsUsed >= PLAYS_PER_TURN || state.reaction) {
         return state;
       }
 
@@ -513,7 +521,7 @@ export const useGame = create((set, get) => ({
           ...state,
           players,
           teams,
-          hasPlayed: true,
+          playsUsed: state.playsUsed + 1,
           reaction: {
             card,
             playerIndex: state.activePlayerIndex,
@@ -718,7 +726,7 @@ export const useGame = create((set, get) => ({
         teams,
         deck,
         discard,
-        hasPlayed: true,
+        playsUsed: state.playsUsed + 1,
         fx: fxList.slice(-40),
         log: log.slice(-30)
       };
@@ -793,7 +801,7 @@ export const useGame = create((set, get) => ({
         return state;
       }
 
-      if (!state.hasPlayed && canPlayAnything(state, state.activePlayerIndex)) {
+      if (!state.playsUsed && canPlayAnything(state, state.activePlayerIndex)) {
         return state;
       }
 
@@ -805,7 +813,7 @@ export const useGame = create((set, get) => ({
         activePlayerIndex: nextPlayerIndex,
         turnNumber: state.turnNumber + 1,
         hasDrawn: false,
-        hasPlayed: false,
+        playsUsed: 0,
         phase: 'pass',
         fx: fxList.slice(-40),
         log: log.slice(-30)
