@@ -6,11 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sim": "node scripts/simulate.mjs"
   },
   "dependencies": {
+    "phaser": "^3.90.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.2",
