@@ -14,8 +14,8 @@ const SEATS = [
 ];
 
 const SLOT_ROWS = {
-  'team-a': { y: 308, xs: [430, 640, 850] },
-  'team-b': { y: 512, xs: [430, 640, 850] }
+  'team-a': { y: 300, xs: [430, 640, 850] },
+  'team-b': { y: 494, xs: [430, 640, 850] }
 };
 
 const DECK_POS = { x: 262, y: 410 };
@@ -525,15 +525,25 @@ export default class TableScene extends Phaser.Scene {
       return;
     }
 
+    const inspect = (card) => {
+      playSound('cardDraw');
+      useGame.getState().inspectCard(card);
+    };
+
     const miniCard = (card, x, y, angle) => {
-      const image = this.add.image(x, y, `card-${card.category.toLowerCase()}`).setScale(0.62).setAngle(angle);
+      const image = this.add
+        .image(x, y, `card-${card.category.toLowerCase()}`)
+        .setScale(0.72)
+        .setAngle(angle)
+        .setInteractive({ useHandCursor: true });
+      image.on('pointerdown', () => inspect(card));
       const name = this.add
         .text(x, y + 4, card.name, {
           fontFamily: 'Trebuchet MS, sans-serif',
-          fontSize: '9px',
+          fontSize: '10px',
           align: 'center',
           color: '#f6f3eb',
-          wordWrap: { width: 40 }
+          wordWrap: { width: 46 }
         })
         .setOrigin(0.5)
         .setAngle(angle);
@@ -541,25 +551,27 @@ export default class TableScene extends Phaser.Scene {
     };
 
     if (deal.client) {
-      miniCard(deal.client, -46, -18, -5);
+      miniCard(deal.client, -52, -18, -5);
     }
     if (deal.vehicle) {
       miniCard(deal.vehicle, 0, -18, 0);
     }
     if (deal.employee) {
-      miniCard(deal.employee, 46, -18, 5);
+      miniCard(deal.employee, 52, -18, 5);
     }
 
     deal.events.forEach((card, index) => {
       const chip = this.add
-        .text(-70 + index * 46, 28, card.name.split(' ')[0], {
+        .text(-74 + index * 50, 28, card.name.split(' ')[0], {
           fontFamily: 'Trebuchet MS, sans-serif',
-          fontSize: '8px',
+          fontSize: '9px',
           color: '#ffd9d3',
           backgroundColor: '#5a221a',
-          padding: { x: 3, y: 2 }
+          padding: { x: 4, y: 3 }
         })
-        .setOrigin(0, 0.5);
+        .setOrigin(0, 0.5)
+        .setInteractive({ useHandCursor: true });
+      chip.on('pointerdown', () => inspect(card));
       view.stack.add(chip);
     });
 

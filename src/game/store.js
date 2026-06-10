@@ -304,6 +304,7 @@ function createInitialState() {
     hasPlayed: false,
     reaction: null,
     winnerTeamId: null,
+    inspectedCard: null,
     log: ['Two stores. One market. May the best dealership win.'],
     fx: []
   };
@@ -316,6 +317,15 @@ export const useGame = create((set, get) => ({
     fxCounter = 0;
     dealCounter = 0;
     set({ ...createInitialState(), phase: 'pass' });
+  },
+
+  // Tap any card on the table (or in hand) to read it full size.
+  inspectCard(card) {
+    set({ inspectedCard: card });
+  },
+
+  clearInspected() {
+    set({ inspectedCard: null });
   },
 
   revealTurn() {
@@ -839,6 +849,11 @@ export const useGame = create((set, get) => ({
     return getCardTargets(state, state.activePlayerIndex, card);
   }
 }));
+
+// Handy for debugging and headless UI tests.
+if (typeof window !== 'undefined') {
+  window.__game = useGame;
+}
 
 function resolveDealerPrincipal(state) {
   const { reaction } = state;
