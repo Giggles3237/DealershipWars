@@ -18,8 +18,8 @@ await page.getByRole('button', { name: 'Reveal My Hand' }).click();
 await page.waitForTimeout(1200);
 
 const metrics = await page.evaluate(() => {
-  const hand = document.querySelector('.hud-hand');
-  const cards = [...document.querySelectorAll('.hud-hand .game-card')];
+  const hand = document.querySelector('.hand-dock-cards');
+  const cards = [...document.querySelectorAll('.hand-dock-cards .game-card')];
 
   return {
     innerHeight: window.innerHeight,

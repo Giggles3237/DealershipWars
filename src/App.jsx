@@ -175,11 +175,10 @@ function GameOverOverlay() {
   );
 }
 
-function TurnHud() {
+// Selection lives at the App level now so the action bar (inside the table region)
+// and the hand dock (below the table) can share it.
+function TurnActions({ selectedCardId, setSelectedCardId }) {
   const game = useGame();
-  const [selectedCardId, setSelectedCardId] = useState('');
-  const [hoverCard, setHoverCard] = useState(null);
-
   const player = game.players[game.activePlayerIndex];
   const selectedCard = player.hand.find((card) => card.id === selectedCardId) || null;
   const playsLeft = PLAYS_PER_TURN - game.playsUsed;
@@ -193,7 +192,6 @@ function TurnHud() {
   const mustDraw = !game.hasDrawn;
   const stuck = game.hasDrawn && canAct && !canPlayAnything(game, game.activePlayerIndex);
   const canEnd = game.hasDrawn && (game.playsUsed > 0 || stuck);
-  const previewCard = hoverCard || selectedCard;
 
   function playTo(target) {
     if (!selectedCard) {
@@ -207,72 +205,79 @@ function TurnHud() {
     }
 
     setSelectedCardId('');
-    setHoverCard(null);
   }
 
   return (
-    <>
-      <div className="hud-bottom">
-        <div className="hud-actions">
-          {mustDraw ? (
-            <button className="primary-button" onClick={game.drawCard}>
-              Draw {DRAW_COUNT} Cards
-            </button>
+    <div className="hud-actions">
+      {mustDraw ? (
+        <button className="primary-button" onClick={game.drawCard}>
+          Draw {DRAW_COUNT} Cards
+        </button>
+      ) : (
+        <span className="plays-left">
+          Plays left: {playsLeft > 0 ? '🂠'.repeat(playsLeft) : '—'} {playsLeft}
+        </span>
+      )}
+      {!mustDraw && canAct && !selectedCard ? (
+        <span className="action-hint">{stuck ? 'No playable cards. End your turn.' : 'Pick a card from your hand.'}</span>
+      ) : null}
+      {selectedCard && canAct ? (
+        <div className="target-panel">
+          <span className="target-title">{selectedCard.name}:</span>
+          {targets.length ? (
+            targets.map((target, index) => (
+              <button key={index} className="secondary-button target-button" onClick={() => playTo(target)}>
+                {target.label}
+              </button>
+            ))
           ) : (
-            <span className="plays-left">
-              Plays left: {playsLeft > 0 ? '🂠'.repeat(playsLeft) : '—'} {playsLeft}
+            <span className="action-hint">
+              {selectedCard.effect === 'manufacturerAudit'
+                ? 'Only playable in response to a Dealer Principal.'
+                : 'No valid target right now.'}
             </span>
           )}
-          {!mustDraw && canAct && !selectedCard ? (
-            <span className="action-hint">{stuck ? 'No playable cards. End your turn.' : 'Pick a card from your hand.'}</span>
-          ) : null}
-          {selectedCard && canAct ? (
-            <div className="target-panel">
-              <span className="target-title">{selectedCard.name}:</span>
-              {targets.length ? (
-                targets.map((target, index) => (
-                  <button key={index} className="secondary-button target-button" onClick={() => playTo(target)}>
-                    {target.label}
-                  </button>
-                ))
-              ) : (
-                <span className="action-hint">
-                  {selectedCard.effect === 'manufacturerAudit'
-                    ? 'Only playable in response to a Dealer Principal.'
-                    : 'No valid target right now.'}
-                </span>
-              )}
-              <button className="secondary-button" onClick={() => setSelectedCardId('')}>
-                Cancel
-              </button>
-            </div>
-          ) : null}
-          <button className="secondary-button end-turn" onClick={game.endTurn} disabled={!canEnd}>
-            End Turn
+          <button className="secondary-button" onClick={() => setSelectedCardId('')}>
+            Cancel
           </button>
         </div>
-
-        <div className="hud-hand">
-          {player.hand.map((card) => (
-            <GameCard
-              key={card.id}
-              card={card}
-              compact
-              selected={selectedCardId === card.id}
-              onClick={() => setSelectedCardId(selectedCardId === card.id ? '' : card.id)}
-              onHover={setHoverCard}
-            />
-          ))}
-          {!player.hand.length ? <p className="empty-hand">Empty hand. The struggle is real.</p> : null}
-        </div>
-      </div>
-
-      {previewCard ? (
-        <div className="hover-preview">
-          <GameCard card={previewCard} />
-        </div>
       ) : null}
-    </>
+      <button className="secondary-button end-turn" onClick={game.endTurn} disabled={!canEnd}>
+        End Turn
+      </button>
+    </div>
+  );
+}
+
+function HandDock({ selectedCardId, setSelectedCardId }) {
+  const players = useGame((state) => state.players);
+  const activePlayerIndex = useGame((state) => state.activePlayerIndex);
+  const inspectCard = useGame((state) => state.inspectCard);
+  const player = players[activePlayerIndex];
+
+  return (
+    <section className="hand-dock">
+      <header className="hand-dock-header">
+        <span className="hand-dock-name">{player.name}'s hand</span>
+        <span className="hand-dock-hint">Tap a card to select. Long-press / right-click for a closer look.</span>
+      </header>
+      <div className="hand-dock-cards">
+        {player.hand.map((card) => (
+          <GameCard
+            key={card.id}
+            card={card}
+            compact
+            selected={selectedCardId === card.id}
+            onClick={() => setSelectedCardId(selectedCardId === card.id ? '' : card.id)}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              inspectCard(card);
+            }}
+          />
+        ))}
+        {!player.hand.length ? <p className="empty-hand">Empty hand. The struggle is real.</p> : null}
+      </div>
+    </section>
   );
 }
 
@@ -297,22 +302,28 @@ function InspectOverlay() {
 function App() {
   const phase = useGame((state) => state.phase);
   const reaction = useGame((state) => state.reaction);
+  const showHand = phase === 'turn' && !reaction;
+  const [selectedCardId, setSelectedCardId] = useState('');
 
   return (
-    <div className="game-stage">
-      <PhaserGame />
+    <div className={`game-stage ${showHand ? 'with-hand' : ''}`}>
+      <div className="table-region">
+        <PhaserGame />
 
-      <div className="hud-layer">
-        {phase !== 'title' ? <Scoreboard /> : null}
-        {phase !== 'title' ? <LogTicker /> : null}
+        <div className="hud-layer">
+          {phase !== 'title' ? <Scoreboard /> : null}
+          {phase !== 'title' ? <LogTicker /> : null}
 
-        {phase === 'title' ? <TitleScreen /> : null}
-        {phase === 'pass' ? <PassScreen /> : null}
-        {phase === 'turn' && !reaction ? <TurnHud /> : null}
-        {reaction ? <ReactionOverlay /> : null}
-        {phase === 'gameover' ? <GameOverOverlay /> : null}
-        <InspectOverlay />
+          {phase === 'title' ? <TitleScreen /> : null}
+          {phase === 'pass' ? <PassScreen /> : null}
+          {showHand ? <TurnActions selectedCardId={selectedCardId} setSelectedCardId={setSelectedCardId} /> : null}
+          {reaction ? <ReactionOverlay /> : null}
+          {phase === 'gameover' ? <GameOverOverlay /> : null}
+          <InspectOverlay />
+        </div>
       </div>
+
+      {showHand ? <HandDock selectedCardId={selectedCardId} setSelectedCardId={setSelectedCardId} /> : null}
     </div>
   );
 }

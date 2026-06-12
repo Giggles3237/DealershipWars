@@ -71,7 +71,7 @@ for (let turn = 0; turn < 8; turn += 1) {
 
   // Try hand cards until the play budget is spent or nothing has a target.
   for (let play = 0; play < 2; play += 1) {
-    const handCards = page.locator('.hud-hand .game-card');
+    const handCards = page.locator('.hand-dock-cards .game-card');
     const count = await handCards.count();
     let played = false;
 
