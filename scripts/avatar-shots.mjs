@@ -19,19 +19,19 @@ await page.getByRole('button', { name: 'Reveal My Hand' }).click();
 await page.mouse.move(700, 80);
 await page.waitForTimeout(2000);
 
-// Canvas is 1280x800 fitted into 1400x900 (scale 1.09375, 12.5px top offset).
-const scale = 1400 / 1280;
-const offsetY = (900 - 800 * scale) / 2;
+// Measure the canvas (FIT-scaled inside its flex region) to map game coords.
+const canvasRect = await page.evaluate(() => document.querySelector('canvas').getBoundingClientRect().toJSON());
+const scale = canvasRect.width / 1280;
 const seats = [
   { name: 'p1', x: 640, y: 118 },
   { name: 'p2', x: 112, y: 408 },
-  { name: 'p3', x: 640, y: 700 },
+  { name: 'p3', x: 640, y: 668 },
   { name: 'p4', x: 1168, y: 408 }
 ];
 
 for (const seat of seats) {
-  const cx = seat.x * scale;
-  const cy = seat.y * scale + offsetY;
+  const cx = canvasRect.x + seat.x * scale;
+  const cy = canvasRect.y + seat.y * scale;
   await page.screenshot({
     path: `scripts/shots/avatar-${seat.name}.png`,
     clip: {
