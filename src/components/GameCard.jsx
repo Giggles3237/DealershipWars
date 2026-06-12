@@ -40,7 +40,7 @@ const TYPE_TEXTURE = {
   Legendary: eventTexture
 };
 
-function GameCard({ card, selected = false, compact = false, onClick = null, onHover = null }) {
+function GameCard({ card, selected = false, compact = false, onClick = null, onHover = null, onContextMenu = null }) {
   const clickable = typeof onClick === 'function';
   const className = `game-card ${card.category.toLowerCase()} ${compact ? 'compact' : 'full'} ${selected ? 'selected' : ''} ${
     clickable ? 'clickable' : ''
@@ -56,6 +56,7 @@ function GameCard({ card, selected = false, compact = false, onClick = null, onH
       onClick={onClick || undefined}
       onMouseEnter={onHover ? () => onHover(card) : undefined}
       onMouseLeave={onHover ? () => onHover(null) : undefined}
+      onContextMenu={onContextMenu || undefined}
       type="button"
       disabled={!clickable}
       style={cardStyle}

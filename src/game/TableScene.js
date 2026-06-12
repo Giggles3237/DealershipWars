@@ -711,13 +711,15 @@ export default class TableScene extends Phaser.Scene {
       useGame.getState().inspectCard(card);
     };
 
+    const baseScale = 0.72;
+    const hoverScale = 1.5;
+
     const miniCard = (card, x, y, angle) => {
       const image = this.add
         .image(x, y, `card-${card.category.toLowerCase()}`)
-        .setScale(0.72)
+        .setScale(baseScale)
         .setAngle(angle)
         .setInteractive({ useHandCursor: true });
-      image.on('pointerdown', () => inspect(card));
       const name = this.add
         .text(x, y + 4, card.name, {
           fontFamily: 'Trebuchet MS, sans-serif',
@@ -728,6 +730,21 @@ export default class TableScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
         .setAngle(angle);
+
+      // Hover lifts the card forward and grows it so the player can read what's there.
+      image.on('pointerover', () => {
+        image.setDepth(50);
+        name.setDepth(51);
+        this.tweens.add({ targets: image, scale: hoverScale, angle: 0, duration: 160, ease: 'Cubic.easeOut' });
+        this.tweens.add({ targets: name, scale: hoverScale, angle: 0, alpha: 0, y: y - 30 * hoverScale, duration: 160 });
+      });
+      image.on('pointerout', () => {
+        image.setDepth(0);
+        name.setDepth(0);
+        this.tweens.add({ targets: image, scale: baseScale, angle, duration: 160 });
+        this.tweens.add({ targets: name, scale: 1, angle, alpha: 1, y: y + 4, duration: 160 });
+      });
+      image.on('pointerdown', () => inspect(card));
       view.stack.add([image, name]);
     };
 
