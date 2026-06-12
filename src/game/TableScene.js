@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { buildAvatarTextures } from './avatarArt';
 import { useGame } from './store';
 import { DEAL_STATUS, TEAM_CONFIG, calculateDealProfit, getDealIndicator, getDealProtection } from './rules';
 import { playSound } from './audio';
@@ -9,7 +10,7 @@ export const GAME_HEIGHT = 800;
 const SEATS = [
   { x: 640, y: 118 }, // Player 1 - top
   { x: 112, y: 408 }, // Player 2 - left
-  { x: 640, y: 700 }, // Player 3 - bottom
+  { x: 640, y: 668 }, // Player 3 - bottom (raised so the action bar doesn't cover the face)
   { x: 1168, y: 408 } // Player 4 - right
 ];
 
@@ -37,50 +38,12 @@ const INDICATOR_COLORS = {
   protected: 0x5aa9ff
 };
 
-// One distinct look per persona: hair style, outfit, and accessories.
+// Animated face-part styling per persona; the static art lives in avatarArt.js.
 const PERSONA_STYLES = [
-  {
-    // Closer Chris: slick hair, sharp blazer, power tie.
-    skin: 0xf2c9a0,
-    hair: 0x3b2b20,
-    shirt: 0xfdf6e8,
-    blazer: 0x1f4d38,
-    iris: 0x4a6b3a,
-    style: 'slick',
-    tie: 0xc23b2e
-  },
-  {
-    // Finance Fran: auburn bob, glasses, burgundy blazer.
-    skin: 0xe8b88a,
-    hair: 0x8a4b22,
-    shirt: 0xf2e3da,
-    blazer: 0x8e3b32,
-    iris: 0x5b3a24,
-    style: 'bob',
-    glasses: true,
-    earrings: true
-  },
-  {
-    // Desk Dana: tidy bun, BDC headset, navy blazer with lanyard.
-    skin: 0xc68642,
-    hair: 0x161616,
-    shirt: 0xe8eef7,
-    blazer: 0x274d80,
-    iris: 0x2e2218,
-    style: 'bun',
-    headset: true,
-    lanyard: true
-  },
-  {
-    // Lot Larry: bald with gray sides, mustache, purple polo.
-    skin: 0xf8d9b0,
-    hair: 0x9a9a9a,
-    shirt: 0x6a3f96,
-    blazer: null,
-    iris: 0x3a5b80,
-    style: 'bald',
-    mustache: true
-  }
+  { skin: 0xf2c9a0, hair: 0x42301f, cuff: 0x1f4d38, iris: 0x4a6b3a },
+  { skin: 0xe8b88a, hair: 0x9a5526, cuff: 0x8e3b32, iris: 0x5b3a24, glasses: true },
+  { skin: 0xc68642, hair: 0x26262c, cuff: 0x274d80, iris: 0x2e2218 },
+  { skin: 0xf8d9b0, hair: 0x9c9c9c, cuff: 0x6a3f96, iris: 0x3a5b80, mustache: true }
 ];
 
 export default class TableScene extends Phaser.Scene {
@@ -99,7 +62,15 @@ export default class TableScene extends Phaser.Scene {
     this.drawTable();
     this.drawPiles();
     this.drawSlots();
-    this.createAvatars();
+
+    this.dead = false;
+
+    // Avatar art is rasterized from SVG strings; build avatars once ready.
+    buildAvatarTextures(this).then(() => {
+      if (!this.dead) {
+        this.createAvatars();
+      }
+    });
 
     this.turnMarker = this.add.circle(SEATS[0].x, SEATS[0].y + 120, 12, 0xf7c76c).setDepth(5);
     this.turnGlow = this.tweens.add({
@@ -113,7 +84,6 @@ export default class TableScene extends Phaser.Scene {
 
     this.syncBoard(useGame.getState());
 
-    this.dead = false;
     this.unsubscribe = useGame.subscribe((state) => this.onStateChange(state));
 
     const cleanup = () => {
@@ -300,104 +270,26 @@ export default class TableScene extends Phaser.Scene {
     const container = this.add.container(x, y).setDepth(6);
     const style = PERSONA_STYLES[index];
     const skin = style.skin;
-    const skinShade = Phaser.Display.Color.IntegerToColor(skin).darken(18).color;
     const team = TEAM_CONFIG.find((entry) => entry.id === player.teamId);
 
-    // Seat shadow and chair back give the character weight at the table.
-    const shadow = this.add.ellipse(0, 92, 132, 26, 0x000000, 0.28);
-    const chair = this.add.graphics();
-    chair.fillStyle(0x20303f, 1);
-    chair.fillRoundedRect(-46, 6, 92, 84, 20);
-    chair.fillStyle(0x182531, 1);
-    chair.fillRoundedRect(-46, 6, 92, 16, { tl: 20, tr: 20, bl: 0, br: 0 });
+    const shadow = this.add.ellipse(0, 94, 136, 26, 0x000000, 0.28);
 
-    // Torso: blazer over shirt, or a polo; collar, tie or lanyard.
-    const torso = this.add.graphics();
-    const jacket = style.blazer ?? style.shirt;
-    torso.fillStyle(jacket, 1);
-    torso.fillRoundedRect(-38, 22, 76, 56, { tl: 24, tr: 24, bl: 14, br: 14 });
-    torso.fillStyle(Phaser.Display.Color.IntegerToColor(jacket).darken(20).color, 1);
-    torso.fillRoundedRect(-38, 60, 76, 18, { tl: 0, tr: 0, bl: 14, br: 14 });
+    // Static art comes from the SVG textures; rendered at 2x, shown at 1x.
+    const body = this.add.image(0, 4, `avatar-body-${index}`).setOrigin(0.5, 0).setScale(0.5);
 
-    if (style.blazer) {
-      torso.fillStyle(style.shirt, 1);
-      torso.fillTriangle(-13, 24, 13, 24, 0, 52);
-      torso.fillStyle(Phaser.Display.Color.IntegerToColor(style.blazer).darken(14).color, 1);
-      torso.fillTriangle(-13, 23, -2, 23, -15, 44);
-      torso.fillTriangle(13, 23, 2, 23, 15, 44);
-    } else {
-      torso.fillStyle(Phaser.Display.Color.IntegerToColor(style.shirt).darken(16).color, 1);
-      torso.fillTriangle(-12, 23, 0, 23, -13, 36);
-      torso.fillTriangle(12, 23, 0, 23, 13, 36);
-    }
-
-    if (style.tie) {
-      torso.fillStyle(style.tie, 1);
-      torso.fillTriangle(-4, 26, 4, 26, 0, 33);
-      torso.fillTriangle(-3, 32, 3, 32, 0, 54);
-    }
-
-    if (style.lanyard) {
-      torso.lineStyle(2, 0xd8b13c, 1);
-      torso.lineBetween(-10, 25, -4, 48);
-      torso.lineBetween(10, 25, 4, 48);
-      torso.fillStyle(0xffffff, 1);
-      torso.fillRoundedRect(-7, 47, 14, 17, 2);
-      torso.fillStyle(team ? Phaser.Display.Color.HexStringToColor(team.accent).color : 0x888888, 1);
-      torso.fillRect(-7, 47, 14, 4);
-    }
-
-    // Hands resting on the table, with shirt cuffs.
-    const cuffs = [
-      this.add.rectangle(-40, 58, 14, 12, jacket),
-      this.add.rectangle(40, 58, 14, 12, jacket)
-    ];
+    // Hands stay separate so they can wave, cheer, and facepalm.
     const hands = [
-      this.add.circle(-40, 66, 9, skin),
-      this.add.circle(40, 66, 9, skin)
+      this.add.circle(-40, 66, 9, skin).setStrokeStyle(2.5, 0x241c2a),
+      this.add.circle(40, 66, 9, skin).setStrokeStyle(2.5, 0x241c2a)
     ];
 
     // Head group: everything that nods/tilts together.
     const headGroup = this.add.container(0, 0);
-    const neck = this.add.rectangle(0, 22, 16, 12, skinShade);
-    const ears = [
-      this.add.circle(-26, 2, 6, skin),
-      this.add.circle(26, 2, 6, skin)
-    ];
-    const head = this.add.circle(0, 0, 27, skin);
+    const head = this.add.image(0, 0, `avatar-head-${index}`).setScale(0.5);
 
-    const hairGraphics = this.add.graphics();
-    hairGraphics.fillStyle(style.hair, 1);
-
-    if (style.style === 'slick') {
-      hairGraphics.fillEllipse(0, -15, 56, 28);
-      hairGraphics.fillEllipse(-18, -8, 18, 24);
-      hairGraphics.fillTriangle(8, -26, 26, -18, 22, -6);
-    } else if (style.style === 'bob') {
-      hairGraphics.fillEllipse(0, -10, 64, 44);
-      hairGraphics.fillEllipse(-24, 6, 16, 34);
-      hairGraphics.fillEllipse(24, 6, 16, 34);
-      hairGraphics.fillEllipse(0, -18, 58, 24);
-    } else if (style.style === 'bun') {
-      hairGraphics.fillEllipse(0, -16, 56, 26);
-      hairGraphics.fillCircle(0, -30, 9);
-      hairGraphics.fillEllipse(-22, -4, 12, 18);
-      hairGraphics.fillEllipse(22, -4, 12, 18);
-    } else {
-      // bald: gray side patches only
-      hairGraphics.fillEllipse(-23, -2, 12, 18);
-      hairGraphics.fillEllipse(23, -2, 12, 18);
-    }
-
-    // Face: cheeks, nose, eyes with irises and highlights, brows.
-    const cheeks = [
-      this.add.ellipse(-14, 8, 10, 6, 0xd96d5a, 0.22),
-      this.add.ellipse(14, 8, 10, 6, 0xd96d5a, 0.22)
-    ];
-    const nose = this.add.ellipse(0, 4, 7, 9, skinShade, 0.85);
     const eyes = [
-      this.add.ellipse(-10, -4, 11, 10, 0xffffff),
-      this.add.ellipse(10, -4, 11, 10, 0xffffff)
+      this.add.ellipse(-10, -4, 11, 10, 0xffffff).setStrokeStyle(1.5, 0x241c2a),
+      this.add.ellipse(10, -4, 11, 10, 0xffffff).setStrokeStyle(1.5, 0x241c2a)
     ];
     const irises = [
       this.add.circle(-10, -4, 4, style.iris),
@@ -417,7 +309,7 @@ export default class TableScene extends Phaser.Scene {
     ];
     const mouth = this.add.ellipse(0, 13, 16, 5, 0x7a3b2e);
 
-    headGroup.add([neck, ...ears, head, hairGraphics, ...cheeks, nose, ...eyes, ...irises, ...pupils, ...glints, ...brows, mouth]);
+    headGroup.add([head, ...eyes, ...irises, ...pupils, ...glints, ...brows, mouth]);
 
     if (style.mustache) {
       const mustache = this.add.graphics();
@@ -438,25 +330,6 @@ export default class TableScene extends Phaser.Scene {
       headGroup.add(glasses);
     }
 
-    if (style.earrings) {
-      headGroup.add(this.add.circle(-26, 9, 2.4, 0xf2c14e));
-      headGroup.add(this.add.circle(26, 9, 2.4, 0xf2c14e));
-    }
-
-    if (style.headset) {
-      const headset = this.add.graphics();
-      headset.lineStyle(3.5, 0x33414f, 1);
-      headset.beginPath();
-      headset.arc(0, -4, 31, Phaser.Math.DegToRad(205), Phaser.Math.DegToRad(335), false);
-      headset.strokePath();
-      headset.fillStyle(0x33414f, 1);
-      headset.fillCircle(-28, 4, 5);
-      headset.lineStyle(2.5, 0x33414f, 1);
-      headset.lineBetween(-27, 8, -14, 16);
-      headset.fillCircle(-13, 16.5, 3);
-      headGroup.add(headset);
-    }
-
     const tagBackground = this.add.rectangle(0, 102, 130, 24, 0x09131f, 0.85).setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(team.accent).color, 0.9);
     const tag = this.add
       .text(0, 102, `${player.persona}`, {
@@ -467,7 +340,7 @@ export default class TableScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    container.add([shadow, chair, torso, ...cuffs, ...hands, headGroup, tagBackground, tag]);
+    container.add([shadow, body, ...hands, headGroup, tagBackground, tag]);
 
     return { container, headGroup, eyes, pupils, brows, mouth, hands, baseY: y, index };
   }
@@ -1204,9 +1077,12 @@ export default class TableScene extends Phaser.Scene {
         this.tweens.add({ targets: spotlight, fillAlpha: 0.22, duration: 350, delay: 200 });
 
         const avatar = this.avatars[fx.playerIndex];
-        const previousDepth = avatar.container.depth;
-        avatar.container.setDepth(75);
-        this.react(fx.playerIndex, 'happy');
+        const previousDepth = avatar ? avatar.container.depth : 0;
+
+        if (avatar) {
+          avatar.container.setDepth(75);
+          this.react(fx.playerIndex, 'happy');
+        }
 
         this.time.delayedCall(650, () => {
           this.speechBubble(fx.playerIndex, "I've made my decision.", 1700);
@@ -1220,7 +1096,9 @@ export default class TableScene extends Phaser.Scene {
             onComplete: () => {
               overlay.destroy();
               spotlight.destroy();
-              avatar.container.setDepth(previousDepth);
+              if (avatar) {
+                avatar.container.setDepth(previousDepth);
+              }
               done();
             }
           });

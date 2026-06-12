@@ -24,7 +24,15 @@ function PhaserGame() {
       scene: [TableScene]
     });
 
+    // Phaser only re-fits on window resize; the host also shrinks when the
+    // hand dock mounts below the table, so watch the host element directly.
+    const observer = new ResizeObserver(() => {
+      gameRef.current?.scale.refresh();
+    });
+    observer.observe(hostRef.current);
+
     return () => {
+      observer.disconnect();
       gameRef.current?.destroy(true);
       gameRef.current = null;
     };
