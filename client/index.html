@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dealership Wars Multiplayer</title>
+    <link rel="stylesheet" href="/client/styles.css" />
+  </head>
+  <body>
+    <div class="page-glow page-glow-left"></div>
+    <div class="page-glow page-glow-right"></div>
+    <main class="app-shell">
+      <section class="hero-card">
+        <div>
+          <p class="eyebrow">Authoritative Multiplayer Build</p>
+          <h1>Dealership Wars</h1>
+          <p class="hero-copy">
+            Four players, fixed seats, server-owned turns, hidden hands, and live room updates over WebSockets.
+          </p>
+        </div>
+        <div class="hero-meta">
+          <div>
+            <span>Studio</span>
+            <strong><a href="/studio">Deck Art</a></strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong id="connection-label">Disconnected</strong>
+          </div>
+          <div>
+            <span>Room</span>
+            <strong id="room-label">None</strong>
+          </div>
+        </div>
+      </section>
+
+      <section id="message-banner" class="message-banner" hidden></section>
+
+      <section id="landing-screen" class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Session</p>
+            <h2>Create or Join</h2>
+          </div>
+        </div>
+
+        <div class="auth-grid">
+          <form id="create-form" class="auth-card">
+            <h3>Create room</h3>
+            <label>
+              <span>Name</span>
+              <input id="create-name" name="name" type="text" maxlength="24" placeholder="Player 1" />
+            </label>
+            <label>
+              <span>Seat</span>
+              <select id="create-seat" name="seat">
+                <option value="0">Player 1 / Team A</option>
+                <option value="1">Player 2 / Team B</option>
+                <option value="2">Player 3 / Team A</option>
+                <option value="3">Player 4 / Team B</option>
+              </select>
+            </label>
+            <div class="ai-setup">
+              <div>
+                <p class="eyebrow">Seat Setup</p>
+                <p class="setup-copy">Mark seats as human to leave them open, or AI to fill them with a dealership personality.</p>
+              </div>
+              <div id="create-ai-setup" class="ai-setup-grid"></div>
+            </div>
+            <button class="primary-button" type="submit">Create Room</button>
+          </form>
+
+          <form id="join-form" class="auth-card">
+            <h3>Join room</h3>
+            <label>
+              <span>Room code</span>
+              <input id="join-room-code" name="roomCode" type="text" maxlength="6" placeholder="ABC123" required />
+            </label>
+            <label>
+              <span>Name</span>
+              <input id="join-name" name="name" type="text" maxlength="24" placeholder="Player name" />
+            </label>
+            <label>
+              <span>Seat</span>
+              <select id="join-seat" name="seat">
+                <option value="">First open seat</option>
+                <option value="0">Player 1 / Team A</option>
+                <option value="1">Player 2 / Team B</option>
+                <option value="2">Player 3 / Team A</option>
+                <option value="3">Player 4 / Team B</option>
+              </select>
+            </label>
+            <button class="primary-button" type="submit">Join Room</button>
+            <button id="reconnect-button" class="secondary-button" type="button">Reconnect Saved Session</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="lobby-screen" class="panel" hidden>
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Lobby</p>
+            <h2>Seat check and ready flow</h2>
+          </div>
+          <div class="action-row">
+            <button id="ready-button" class="primary-button" type="button">Ready Up</button>
+            <button id="start-button" class="secondary-button" type="button">Start Game</button>
+          </div>
+        </div>
+
+        <div id="seat-grid" class="seat-grid"></div>
+        <div class="lobby-note">
+          The game auto-starts once all four seats are filled and marked ready. The host can also trigger start once those conditions are met.
+        </div>
+      </section>
+
+      <section id="game-screen" class="game-layout" hidden>
+        <section class="top-strip panel">
+          <div>
+            <p class="eyebrow">Turn</p>
+            <h2 id="turn-title">Waiting for game state...</h2>
+            <p id="turn-meta" class="muted-text"></p>
+          </div>
+          <div class="action-row">
+            <button id="end-turn-button" class="primary-button" type="button">End Turn</button>
+          </div>
+        </section>
+
+        <section class="board-grid">
+          <div class="panel team-panel">
+            <div class="team-heading">
+              <p class="eyebrow">Team A</p>
+              <h2>North Showroom</h2>
+              <strong id="team-a-profit">0 profit</strong>
+            </div>
+            <div id="team-a-players" class="player-strip"></div>
+            <div id="team-a-slots" class="deal-slots"></div>
+          </div>
+
+          <div class="panel center-panel">
+            <div class="stats-grid">
+              <div class="stat-card">
+                <span>Deck</span>
+                <strong id="deck-count">0</strong>
+              </div>
+              <div class="stat-card">
+                <span>Discard</span>
+                <strong id="discard-count">0</strong>
+              </div>
+              <div class="stat-card">
+                <span>Actions</span>
+                <strong id="actions-count">0</strong>
+              </div>
+            </div>
+            <div class="winner-card">
+              <h3 id="winner-title">No winner yet</h3>
+              <p id="winner-copy" class="muted-text">Complete deals, protect them through the next allied turn, and race to 100 profit.</p>
+            </div>
+            <div class="log-card">
+              <div class="section-line">
+                <p class="eyebrow">Activity</p>
+                <h3>Recent plays</h3>
+              </div>
+              <ol id="log-list" class="log-list"></ol>
+            </div>
+          </div>
+
+          <div class="panel team-panel">
+            <div class="team-heading">
+              <p class="eyebrow">Team B</p>
+              <h2>South Showroom</h2>
+              <strong id="team-b-profit">0 profit</strong>
+            </div>
+            <div id="team-b-players" class="player-strip"></div>
+            <div id="team-b-slots" class="deal-slots"></div>
+          </div>
+        </section>
+
+        <section class="panel hand-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Private Hand</p>
+              <h2 id="hand-title">Your cards</h2>
+            </div>
+          </div>
+          <div id="hand-grid" class="hand-grid"></div>
+        </section>
+
+        <section class="panel library-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Deck Library</p>
+              <h2>Card reference</h2>
+            </div>
+            <label class="search-field">
+              <span>Search</span>
+              <input id="search-input" type="search" placeholder="BMW, sabotage, employee..." />
+            </label>
+          </div>
+          <div id="library-grid" class="library-grid"></div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="/client/app.js"></script>
+  </body>
+</html>

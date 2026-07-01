@@ -1,49 +1,51 @@
-# Dealership Wars
+# Dealership Wars Multiplayer
 
-A 4-player, team-based digital card game inspired by the automotive retail industry. Two
-dealerships sit around a conference table, build vehicle deals, sabotage each other, and
-race to **$100 profit**.
+This workspace now contains a real client/server multiplayer architecture for Dealership Wars:
 
-Built as a digital board game: a Phaser 3 table scene (animated cards, cartoon employee
-avatars, deal slots) with a React HUD, all driven by a single Zustand game store.
+- `client/` browser UI rendered from server-sent state
+- `server/` authoritative room, seat, reconnect, and WebSocket handling
+- `shared/` pure game engine, rules, and serialization helpers
+- `tests/` lightweight validation for room flow and rules enforcement
 
-## How to play
+## Local Run
 
-- **4 players, 2 teams.** Partners sit opposite each other and share a profit score and a
-  3-slot deal pipeline.
-- **On your turn:** draw 2 cards, play up to 2 cards, pass clockwise (pass-the-device local play).
-- **Build deals:** a deal needs a Client + Vehicle + Employee. Once complete it goes
-  **Pending Delivery** and must survive until the start of your team's next turn. If it
-  survives, it delivers and the profit is banked.
-- **Sabotage:** ghost their internet leads, poach their employees, file chargebacks, plant
-  one-star surveys, launch recall campaigns.
-- **Protect:** Receptionists guard clients, Sales Managers guard vehicles, the GSM blocks
-  everything aimed at their deal, and the Superstar Employee soaks the first hit.
-- **Legendaries:** the **Dealer Principal** slams the table and forces a deal through
-  instantly ("I've made my decision.") — unless the other team responds with the
-  **Manufacturer Audit** ("We have concerns.").
+1. Install dependencies:
+   - `npm install`
+2. Start the server:
+   - `npm start`
+3. Open the game in a browser:
+   - [http://localhost:3000](http://localhost:3000)
+4. For auto-reload during development:
+   - `npm run dev`
+5. Run tests:
+   - `npm test`
 
-A team wins at 100 profit, or by highest profit once the deck is exhausted and all deals
-have resolved.
+## Card Graphics
 
-## Development
+The deck art is generated from `cards.json` so each card has a matching full-card SVG with the same dealership tabletop theme and type-specific colors.
 
-```bash
-npm install
-npm run dev      # local dev server
-npm run build    # production build (deployed to GitHub Pages from main)
-npm run sim      # headless rules engine smoke test (50 simulated games)
-```
+- Open the AI art planning studio:
+  - [http://localhost:3000/studio](http://localhost:3000/studio)
+- Generate or refresh all card graphics:
+  - `npm run cards:art`
+- Output folder:
+  - `client/assets/cards/`
+- The browser UI automatically uses the generated SVG for hand cards and the deck library.
 
-## Project layout
+The studio is a local production workspace for the next pass: tune shared art direction, copy per-card AI prompts, import generated art for review, track approval status, and export a JSON art brief for batch generation.
 
-| Path | Purpose |
-| --- | --- |
-| `src/data/cards.json` | The full 54-card deck (Clients, Vehicles, Employees, Events, Legendaries) — no cards are hardcoded in app code |
-| `src/game/rules.js` | Pure rules: profit math, protection, deal status, win threshold |
-| `src/game/store.js` | Zustand store: turn flow, deal pipeline, sabotage resolution, the Dealer Principal reaction window, and an FX event queue |
-| `src/game/TableScene.js` | Phaser 3 scene: the table, deal slots, avatars with idle/reaction animations, and all card/event animations |
-| `src/game/PhaserGame.jsx` | React wrapper that mounts the Phaser canvas |
-| `src/App.jsx` | React HUD: scoreboard, hand tray, target picker, pass screen, reaction overlay |
-| `scripts/simulate.mjs` | Bot that plays full games against the store and asserts invariants |
-| `scripts/browser-check.mjs` | Optional headless-browser smoke test (`npm i --no-save playwright-core @sparticuz/chromium` first) |
+## Internet-Deployment Readiness
+
+The architecture is ready to move to a hosted Node process later because:
+
+- the server is the source of truth
+- the client sends intents only
+- hidden information is serialized per player
+- reconnect uses stable `playerId` plus `reconnectToken`
+- host and port come from environment variables
+
+## Current Limitations
+
+- reconnect persistence is browser-local convenience only and is not a full account system
+- room state is currently in-memory, so restarting the Node process clears active games
+- production internet deployment will still need TLS, a process host, and durable session/state strategy if you want restart survival

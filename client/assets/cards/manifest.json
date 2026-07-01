@@ -1,0 +1,326 @@
+[
+  {
+    "id": 1,
+    "name": "Dealer Principal",
+    "type": "Legendary",
+    "file": "/client/assets/cards/01-dealer-principal.svg"
+  },
+  {
+    "id": 2,
+    "name": "Manufacturer Audit",
+    "type": "Legendary",
+    "file": "/client/assets/cards/02-manufacturer-audit.svg"
+  },
+  {
+    "id": 3,
+    "name": "First-Time Buyer",
+    "type": "Client",
+    "file": "/client/assets/cards/03-first-time-buyer.svg"
+  },
+  {
+    "id": 4,
+    "name": "College Graduate",
+    "type": "Client",
+    "file": "/client/assets/cards/04-college-graduate.svg"
+  },
+  {
+    "id": 5,
+    "name": "Family of Five",
+    "type": "Client",
+    "file": "/client/assets/cards/05-family-of-five.svg"
+  },
+  {
+    "id": 6,
+    "name": "Empty Nester",
+    "type": "Client",
+    "file": "/client/assets/cards/06-empty-nester.svg"
+  },
+  {
+    "id": 7,
+    "name": "Lease Return Customer",
+    "type": "Client",
+    "file": "/client/assets/cards/07-lease-return-customer.svg"
+  },
+  {
+    "id": 8,
+    "name": "BMW Enthusiast",
+    "type": "Client",
+    "file": "/client/assets/cards/08-bmw-enthusiast.svg"
+  },
+  {
+    "id": 9,
+    "name": "MINI Fanatic",
+    "type": "Client",
+    "file": "/client/assets/cards/09-mini-fanatic.svg"
+  },
+  {
+    "id": 10,
+    "name": "Business Owner",
+    "type": "Client",
+    "file": "/client/assets/cards/10-business-owner.svg"
+  },
+  {
+    "id": 11,
+    "name": "Out-of-State Buyer",
+    "type": "Client",
+    "file": "/client/assets/cards/11-out-of-state-buyer.svg"
+  },
+  {
+    "id": 12,
+    "name": "Referral Customer",
+    "type": "Client",
+    "file": "/client/assets/cards/12-referral-customer.svg"
+  },
+  {
+    "id": 13,
+    "name": "Corporate Fleet Buyer",
+    "type": "Client",
+    "file": "/client/assets/cards/13-corporate-fleet-buyer.svg"
+  },
+  {
+    "id": 14,
+    "name": "Luxury Shopper",
+    "type": "Client",
+    "file": "/client/assets/cards/14-luxury-shopper.svg"
+  },
+  {
+    "id": 15,
+    "name": "Dream Customer",
+    "type": "Client",
+    "file": "/client/assets/cards/15-dream-customer.svg"
+  },
+  {
+    "id": 16,
+    "name": "High Mileage Trade",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/16-high-mileage-trade.svg"
+  },
+  {
+    "id": 17,
+    "name": "Service Loaner",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/17-service-loaner.svg"
+  },
+  {
+    "id": 18,
+    "name": "Base Model Sedan",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/18-base-model-sedan.svg"
+  },
+  {
+    "id": 19,
+    "name": "Certified Pre-Owned",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/19-certified-pre-owned.svg"
+  },
+  {
+    "id": 20,
+    "name": "MINI Cooper",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/20-mini-cooper.svg"
+  },
+  {
+    "id": 21,
+    "name": "BMW X1",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/21-bmw-x1.svg"
+  },
+  {
+    "id": 22,
+    "name": "BMW 330i",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/22-bmw-330i.svg"
+  },
+  {
+    "id": 23,
+    "name": "BMW X3",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/23-bmw-x3.svg"
+  },
+  {
+    "id": 24,
+    "name": "BMW X5",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/24-bmw-x5.svg"
+  },
+  {
+    "id": 25,
+    "name": "BMW iX",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/25-bmw-ix.svg"
+  },
+  {
+    "id": 26,
+    "name": "BMW M2",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/26-bmw-m2.svg"
+  },
+  {
+    "id": 27,
+    "name": "BMW M3",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/27-bmw-m3.svg"
+  },
+  {
+    "id": 28,
+    "name": "Unicorn Allocation",
+    "type": "Vehicle",
+    "file": "/client/assets/cards/28-unicorn-allocation.svg"
+  },
+  {
+    "id": 29,
+    "name": "New Hire",
+    "type": "Employee",
+    "file": "/client/assets/cards/29-new-hire.svg"
+  },
+  {
+    "id": 30,
+    "name": "Porter",
+    "type": "Employee",
+    "file": "/client/assets/cards/30-porter.svg"
+  },
+  {
+    "id": 31,
+    "name": "Receptionist",
+    "type": "Employee",
+    "file": "/client/assets/cards/31-receptionist.svg"
+  },
+  {
+    "id": 32,
+    "name": "BDC Agent",
+    "type": "Employee",
+    "file": "/client/assets/cards/32-bdc-agent.svg"
+  },
+  {
+    "id": 33,
+    "name": "Product Genius",
+    "type": "Employee",
+    "file": "/client/assets/cards/33-product-genius.svg"
+  },
+  {
+    "id": 34,
+    "name": "Finance Coordinator",
+    "type": "Employee",
+    "file": "/client/assets/cards/34-finance-coordinator.svg"
+  },
+  {
+    "id": 35,
+    "name": "Service Advisor",
+    "type": "Employee",
+    "file": "/client/assets/cards/35-service-advisor.svg"
+  },
+  {
+    "id": 36,
+    "name": "Client Advisor",
+    "type": "Employee",
+    "file": "/client/assets/cards/36-client-advisor.svg"
+  },
+  {
+    "id": 37,
+    "name": "F&I Manager",
+    "type": "Employee",
+    "file": "/client/assets/cards/37-f-i-manager.svg"
+  },
+  {
+    "id": 38,
+    "name": "Used Car Manager",
+    "type": "Employee",
+    "file": "/client/assets/cards/38-used-car-manager.svg"
+  },
+  {
+    "id": 39,
+    "name": "Sales Manager",
+    "type": "Employee",
+    "file": "/client/assets/cards/39-sales-manager.svg"
+  },
+  {
+    "id": 40,
+    "name": "GSM",
+    "type": "Employee",
+    "file": "/client/assets/cards/40-gsm.svg"
+  },
+  {
+    "id": 41,
+    "name": "Superstar Employee",
+    "type": "Employee",
+    "file": "/client/assets/cards/41-superstar-employee.svg"
+  },
+  {
+    "id": 42,
+    "name": "Bad Survey",
+    "type": "Event",
+    "file": "/client/assets/cards/42-bad-survey.svg"
+  },
+  {
+    "id": 43,
+    "name": "Chargeback",
+    "type": "Event",
+    "file": "/client/assets/cards/43-chargeback.svg"
+  },
+  {
+    "id": 44,
+    "name": "Factory Incentive",
+    "type": "Event",
+    "file": "/client/assets/cards/44-factory-incentive.svg"
+  },
+  {
+    "id": 45,
+    "name": "Recall Campaign",
+    "type": "Event",
+    "file": "/client/assets/cards/45-recall-campaign.svg"
+  },
+  {
+    "id": 46,
+    "name": "Employee Quits",
+    "type": "Event",
+    "file": "/client/assets/cards/46-employee-quits.svg"
+  },
+  {
+    "id": 47,
+    "name": "Massive Trade",
+    "type": "Event",
+    "file": "/client/assets/cards/47-massive-trade.svg"
+  },
+  {
+    "id": 48,
+    "name": "Viral Social Post",
+    "type": "Event",
+    "file": "/client/assets/cards/48-viral-social-post.svg"
+  },
+  {
+    "id": 49,
+    "name": "Internet Lead Ghosts You",
+    "type": "Event",
+    "file": "/client/assets/cards/49-internet-lead-ghosts-you.svg"
+  },
+  {
+    "id": 50,
+    "name": "Google Review Hero",
+    "type": "Event",
+    "file": "/client/assets/cards/50-google-review-hero.svg"
+  },
+  {
+    "id": 51,
+    "name": "End-of-Month Rush",
+    "type": "Event",
+    "file": "/client/assets/cards/51-end-of-month-rush.svg"
+  },
+  {
+    "id": 52,
+    "name": "Market Adjustment",
+    "type": "Event",
+    "file": "/client/assets/cards/52-market-adjustment.svg"
+  },
+  {
+    "id": 53,
+    "name": "Customer For Life",
+    "type": "Event",
+    "file": "/client/assets/cards/53-customer-for-life.svg"
+  },
+  {
+    "id": 54,
+    "name": "Record Month",
+    "type": "Event",
+    "file": "/client/assets/cards/54-record-month.svg"
+  }
+]

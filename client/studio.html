@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dealership Wars Deck Art Studio</title>
+    <link rel="stylesheet" href="/client/studio.css" />
+  </head>
+  <body>
+    <main class="studio-shell">
+      <header class="studio-header">
+        <div>
+          <p class="eyebrow">Deck Art Studio</p>
+          <h1>Dealership Wars</h1>
+          <p class="intro-copy">
+            Build a consistent AI art brief for every card, track approvals, and stage generated images before the deck goes to print.
+          </p>
+        </div>
+        <nav class="studio-actions" aria-label="Studio actions">
+          <a class="secondary-button" href="/">Game</a>
+          <button id="export-button" class="primary-button" type="button">Export Art Brief</button>
+        </nav>
+      </header>
+
+      <section class="style-panel" aria-labelledby="style-title">
+        <div>
+          <p class="eyebrow">Shared Art Direction</p>
+          <h2 id="style-title">One visual language for the full deck</h2>
+        </div>
+        <div class="style-grid">
+          <label>
+            <span>Style</span>
+            <select id="style-select">
+              <option value="Animated dealership board game art, expressive characters, bold shapes, crisp ink outlines, polished tabletop card illustration">Animated board game</option>
+              <option value="Retro comic book cover art, halftone texture, dramatic expressions, saturated showroom lighting, thick ink lines">Retro comic</option>
+              <option value="Stylized 3D toy-diorama render, miniature dealership set, soft studio lighting, clean playful details">Toy diorama</option>
+              <option value="Premium editorial illustration, sleek automotive showroom, confident shapes, cinematic lighting, polished magazine color">Premium editorial</option>
+            </select>
+          </label>
+          <label>
+            <span>Negative prompt</span>
+            <input id="negative-input" type="text" value="no real logos, no readable brand marks, no photorealistic humans, no extra text, no watermark, no distorted hands" />
+          </label>
+          <label>
+            <span>Image format</span>
+            <select id="format-select">
+              <option value="portrait trading card art, 3:4 aspect ratio, room for title and rules text outside the image area">Portrait card art</option>
+              <option value="full bleed playing card illustration, 2.5:3.5 aspect ratio, centered subject, clean edges">Full card bleed</option>
+              <option value="square production concept art, centered subject, simple readable silhouette">Square concept</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="studio-grid">
+        <aside class="card-browser" aria-labelledby="browser-title">
+          <div class="browser-header">
+            <div>
+              <p class="eyebrow">Cards</p>
+              <h2 id="browser-title">Deck queue</h2>
+            </div>
+            <span id="progress-label" class="progress-pill">0 / 54 approved</span>
+          </div>
+          <label class="search-field">
+            <span>Search</span>
+            <input id="search-input" type="search" placeholder="BMW, sabotage, employee..." />
+          </label>
+          <div id="type-filters" class="type-filters" aria-label="Filter by type"></div>
+          <div id="card-list" class="card-list"></div>
+        </aside>
+
+        <section class="workbench" aria-live="polite">
+          <div class="workbench-heading">
+            <div>
+              <p id="selected-type" class="eyebrow">Select a card</p>
+              <h2 id="selected-name">Deck art brief</h2>
+            </div>
+            <select id="status-select" aria-label="Art status">
+              <option value="brief">Brief</option>
+              <option value="generating">Generating</option>
+              <option value="review">Review</option>
+              <option value="approved">Approved</option>
+            </select>
+          </div>
+
+          <div class="preview-layout">
+            <div class="art-preview">
+              <img id="preview-image" alt="" />
+              <div id="preview-empty" class="preview-empty">
+                <strong>No generated art attached yet.</strong>
+                <span>Use the prompt, generate in your AI image tool, then import the result here.</span>
+              </div>
+            </div>
+            <div class="prompt-panel">
+              <div class="meta-row">
+                <span id="selected-value">Value</span>
+                <span id="selected-id">#00</span>
+              </div>
+              <p id="selected-effect" class="effect-copy"></p>
+              <p id="selected-notes" class="notes-copy"></p>
+              <label>
+                <span>Card-specific art note</span>
+                <textarea id="art-note-input" rows="4"></textarea>
+              </label>
+              <label>
+                <span>Generated image prompt</span>
+                <textarea id="prompt-output" rows="9" readonly></textarea>
+              </label>
+              <div class="button-row">
+                <button id="copy-button" class="primary-button" type="button">Copy Prompt</button>
+                <button id="reset-note-button" class="secondary-button" type="button">Reset Note</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="asset-panel">
+            <label class="upload-target">
+              <span>Import generated image for this card</span>
+              <input id="asset-input" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+            </label>
+            <label>
+              <span>Production notes</span>
+              <textarea id="production-notes-input" rows="3" placeholder="Crop notes, prompt revisions, approval comments..."></textarea>
+            </label>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="/client/studio.js"></script>
+  </body>
+</html>

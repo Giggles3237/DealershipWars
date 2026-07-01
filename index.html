@@ -1,12 +1,204 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dealership Wars</title>
+    <title>Dealership Wars Simulator</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <div class="table-glow table-glow-left"></div>
+    <div class="table-glow table-glow-right"></div>
+    <main class="app-shell">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Dealership Wars Simulator</p>
+          <h1>A playable browser prototype for building, protecting, and sabotaging deals.</h1>
+          <p class="hero-text">
+            Four local players rotate clockwise, teams share profit, completed deals survive to the
+            next allied turn, and every card comes from the 54-card JSON deck.
+          </p>
+          <p class="hero-note">
+            Drag cards straight onto the table, let the AI handle the other seats, and use the deck
+            library below as your live rules reference while the prototype runs.
+          </p>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-stat">
+            <span class="stat-label">Deck</span>
+            <strong id="hero-deck-count">54</strong>
+          </div>
+          <div class="hero-stat">
+            <span class="stat-label">Discard</span>
+            <strong id="hero-discard-count">0</strong>
+          </div>
+          <div class="hero-stat">
+            <span class="stat-label">Turn</span>
+            <strong id="hero-turn-count">1</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="top-bar">
+        <div class="turn-panel">
+          <p class="eyebrow">Current Turn</p>
+          <h2 id="turn-title">Loading game...</h2>
+          <p id="turn-meta" class="turn-meta"></p>
+          <div class="turn-actions">
+            <button id="new-game-button" class="primary-button" type="button">New Game</button>
+            <button id="end-turn-button" class="secondary-button" type="button">End Turn</button>
+            <button id="run-ai-button" class="secondary-button" type="button">Run AI Turn</button>
+          </div>
+        </div>
+        <div class="rules-panel">
+          <p class="eyebrow">Simulation Focus</p>
+          <ul class="rules-list">
+            <li>Draw 1 at the start of each turn.</li>
+            <li>Play 2 cards each turn, with some effects creating bonus plays.</li>
+            <li>Deals deliver at the next allied turn if they stay complete.</li>
+            <li>First team to 100 profit wins, or highest profit wins when the deck runs dry.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="setup-section" aria-labelledby="setup-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Players</p>
+            <h2 id="setup-title">Choose who is human and who is AI</h2>
+          </div>
+          <p class="setup-caption">
+            Changes apply when you start a new game.
+          </p>
+        </div>
+        <div id="player-setup-grid" class="player-setup-grid"></div>
+      </section>
+
+      <section class="scoreboard" id="scoreboard"></section>
+
+      <section class="hand-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Active Hand</p>
+            <h2 id="hand-title">Player hand</h2>
+          </div>
+          <p id="hand-caption" class="hand-caption"></p>
+        </div>
+        <div id="hand-grid" class="hand-grid"></div>
+      </section>
+
+      <section class="table-layout">
+        <div class="team-column">
+          <div class="team-heading">
+            <p class="eyebrow">Team A</p>
+            <h2>North Showroom</h2>
+          </div>
+          <div id="team-0-slots" class="deal-slots"></div>
+          <div id="team-0-players" class="player-strip"></div>
+        </div>
+
+        <div class="center-column">
+          <div class="table-center-card">
+            <p class="eyebrow">Table State</p>
+            <h2 id="winner-banner">No winner yet</h2>
+            <p id="table-summary" class="table-summary"></p>
+          </div>
+          <section class="activity-feed">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Activity</p>
+                <h2>Recent plays</h2>
+              </div>
+            </div>
+            <ol id="log-list" class="log-list"></ol>
+          </section>
+        </div>
+
+        <div class="team-column">
+          <div class="team-heading">
+            <p class="eyebrow">Team B</p>
+            <h2>South Showroom</h2>
+          </div>
+          <div id="team-1-slots" class="deal-slots"></div>
+          <div id="team-1-players" class="player-strip"></div>
+        </div>
+      </section>
+
+      <section class="library-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Deck Library</p>
+            <h2>Reference every card while you play</h2>
+          </div>
+          <p class="library-caption">
+            Search and filter the full matrix without leaving the simulation.
+          </p>
+        </div>
+
+        <div class="controls">
+          <label class="search-field">
+            <span>Search cards</span>
+            <input
+              id="search-input"
+              type="search"
+              placeholder="Try sabotage, BMW, employee, or incentive"
+            />
+          </label>
+
+          <div class="filter-group" id="type-filters" aria-label="Card type filters"></div>
+
+          <label class="sort-field">
+            <span>Sort by</span>
+            <select id="sort-select">
+              <option value="id">Deck order</option>
+              <option value="value-desc">Highest value</option>
+              <option value="value-asc">Lowest value</option>
+              <option value="name">Name</option>
+            </select>
+          </label>
+        </div>
+
+        <section class="summary-strip" id="summary-strip"></section>
+
+        <div class="library-header-row">
+          <p class="library-total">
+            Visible cards:
+            <strong id="visible-count">0</strong>
+          </p>
+          <button id="reset-button" class="secondary-button" type="button">Reset filters</button>
+        </div>
+
+        <div id="cards-grid" class="cards-grid" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <template id="library-card-template">
+      <article class="library-card">
+        <div class="card-chrome">
+          <span class="card-rank"></span>
+          <span class="card-id"></span>
+        </div>
+        <div class="card-topline">
+          <span class="card-type"></span>
+          <strong class="card-value"></strong>
+        </div>
+        <h3 class="card-name"></h3>
+        <p class="card-art"></p>
+        <p class="card-effect"></p>
+        <dl class="card-meta">
+          <div>
+            <dt>Combo / Notes</dt>
+            <dd class="card-notes"></dd>
+          </div>
+          <div>
+            <dt>Artwork Direction</dt>
+            <dd class="card-artwork"></dd>
+          </div>
+        </dl>
+      </article>
+    </template>
+
+    <script src="cards-data.js"></script>
+    <script src="app.js"></script>
   </body>
-  </html>
+</html>
