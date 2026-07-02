@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node --check server/server.js && node --check client/app.js && node --check shared/game-engine.js",
     "cards:art": "node scripts/generate-card-graphics.js",
     "start": "node server/server.js",
     "dev": "node --watch server/server.js",
