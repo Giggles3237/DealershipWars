@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { baseCards } from "../shared/cards.js";
+import { CASH_TARGET } from "../shared/constants.js";
 import {
   addPlayerToGame,
   applyAction,
@@ -15,6 +16,7 @@ import { RoomManager } from "../server/room-manager.js";
 
 const pickCard = (name, uid) => {
   const card = baseCards.find((entry) => entry.name === name);
+  assert.ok(card, `expected ${name} to exist in the deck`);
   return { ...card, uid };
 };
 
@@ -61,31 +63,97 @@ test("room creation, join flow, ready flow, and auto start produce a four-player
   assert.equal(room.state.turnNumber, 1);
   assert.equal(room.state.actionsRemaining, 2);
   assert.equal(room.state.currentPlayerId, host.playerId);
-  assert.equal(room.state.players.find((player) => player.id === host.playerId).hand.length, 6);
+  assert.equal(room.state.players.find((player) => player.id === host.playerId).hand.length, 7);
   assert.equal(room.state.players.find((player) => player.id === p2.playerId).hand.length, 5);
 });
 
-test("legal card play updates the board and out-of-turn play is rejected", () => {
+test("recruiting a customer and stocking a vehicle fills the dealership tableau", () => {
   const state = buildFixtureState();
-  const action = buildLegalActions(state, "p1").find((entry) => entry.cardName === "First-Time Buyer");
+  const recruit = buildLegalActions(state, "p1").find((entry) => entry.cardName === "First-Time Buyer");
+  assert.ok(recruit, "expected a recruit action");
 
-  assert.ok(action, "expected a playable client action");
+  let next = applyAction(state, "p1", { cardUid: recruit.cardUid, action: recruit.action });
+  const alice = next.players.find((player) => player.id === "p1");
 
-  const next = applyAction(state, "p1", {
-    cardUid: action.cardUid,
-    action: action.action
-  });
-
-  assert.equal(next.teams[0].slots[action.action.slotIndex].client.name, "First-Time Buyer");
-  assert.equal(next.players.find((player) => player.id === "p1").hand.length, 1);
+  assert.equal(alice.customers.length, 1);
+  assert.equal(alice.customers[0].name, "First-Time Buyer");
+  assert.equal(alice.reputation, 1);
   assert.equal(next.actionsRemaining, 1);
+
+  const stock = buildLegalActions(next, "p1").find((entry) => entry.cardName === "Base Model Sedan");
+  assert.ok(stock, "expected a stock action");
+  next = applyAction(next, "p1", { cardUid: stock.cardUid, action: stock.action });
+
+  assert.equal(next.players.find((player) => player.id === "p1").vehicles.length, 1);
+  assert.equal(next.actionsRemaining, 0);
 
   assert.throws(() => {
     applyAction(state, "p2", {
       cardUid: "c3",
-      action: buildLegalActions(state, "p2")[0]?.action ?? { kind: "team-profit" }
+      action: { label: "Target Alice", kind: "sabotage", targetPlayerId: "p1" }
     });
   }, /not your turn/i);
+});
+
+test("closing a sale pays vehicle profit plus customer bonus plus combo", () => {
+  const state = buildFixtureState();
+  const player = state.players.find((entry) => entry.id === "p1");
+  player.customers = [pickCard("First-Time Buyer", "cust1")];
+  player.vehicles = [pickCard("Base Model Sedan", "veh1")];
+  player.hand = [];
+
+  const sale = buildLegalActions(state, "p1").find((entry) => entry.action.kind === "close-sale");
+  assert.ok(sale, "expected a close-sale action");
+
+  const next = applyAction(state, "p1", { cardUid: null, action: sale.action });
+  const alice = next.players.find((entry) => entry.id === "p1");
+
+  // 3 profit + 1 bonus + 2 combo (First-Time Buyer wants economy)
+  assert.equal(alice.cash, 6);
+  assert.equal(alice.reputation, 1);
+  assert.equal(alice.vehicles.length, 0);
+  assert.equal(alice.customers.length, 0);
+});
+
+test("sabotage targets a rival and reputation cannot go below zero", () => {
+  const state = buildFixtureState();
+  state.currentSeatIndex = 1;
+  state.currentPlayerId = "p2";
+  const alice = state.players.find((entry) => entry.id === "p1");
+  alice.reputation = 2;
+
+  const sabotage = buildLegalActions(state, "p2").find(
+    (entry) => entry.cardName === "Bad Survey" && entry.action.targetPlayerId === "p1"
+  );
+  assert.ok(sabotage, "expected a sabotage action targeting Alice");
+
+  const next = applyAction(state, "p2", { cardUid: sabotage.cardUid, action: sabotage.action });
+  assert.equal(next.players.find((entry) => entry.id === "p1").reputation, 0);
+});
+
+test("customers with reputation requirements cannot be recruited early", () => {
+  const state = buildFixtureState();
+  const player = state.players.find((entry) => entry.id === "p1");
+  player.hand = [pickCard("Dream Customer", "vip1")];
+
+  assert.equal(buildLegalActions(state, "p1").filter((entry) => entry.cardName === "Dream Customer").length, 0);
+
+  player.reputation = 8;
+  const recruit = buildLegalActions(state, "p1").find((entry) => entry.cardName === "Dream Customer");
+  assert.ok(recruit, "expected Dream Customer to be recruitable at 8 reputation");
+});
+
+test("reaching the cash target wins the game", () => {
+  const state = buildFixtureState();
+  const player = state.players.find((entry) => entry.id === "p1");
+  player.cash = CASH_TARGET - 2;
+  player.hand = [pickCard("Flash Sale", "flash1")];
+
+  const play = buildLegalActions(state, "p1").find((entry) => entry.cardName === "Flash Sale");
+  const next = applyAction(state, "p1", { cardUid: play.cardUid, action: play.action });
+
+  assert.equal(next.status, "finished");
+  assert.equal(next.winner.playerId, "p1");
 });
 
 test("private serialization hides opponents' hand contents while keeping hand counts public", () => {
@@ -103,10 +171,10 @@ test("ending a turn advances clockwise and draws for the next seat", () => {
   let state = createGameState({ roomCode: "TURN" });
 
   [
-    { id: "p1", name: "Alice", seatIndex: 0, reconnectToken: "r1", ready: true },
-    { id: "p2", name: "Bob", seatIndex: 1, reconnectToken: "r2", ready: true },
-    { id: "p3", name: "Casey", seatIndex: 2, reconnectToken: "r3", ready: true },
-    { id: "p4", name: "Drew", seatIndex: 3, reconnectToken: "r4", ready: true }
+    { id: "p1", name: "Alice", seatIndex: 0, reconnectToken: "r1" },
+    { id: "p2", name: "Bob", seatIndex: 1, reconnectToken: "r2" },
+    { id: "p3", name: "Casey", seatIndex: 2, reconnectToken: "r3" },
+    { id: "p4", name: "Drew", seatIndex: 3, reconnectToken: "r4" }
   ].forEach((player) => {
     state = addPlayerToGame(state, player);
   });
@@ -121,7 +189,7 @@ test("ending a turn advances clockwise and draws for the next seat", () => {
 
   assert.equal(next.currentPlayerId, "p2");
   assert.equal(next.turnNumber, 2);
-  assert.equal(next.players.find((player) => player.id === "p2").hand.length, bobBefore + 1);
+  assert.equal(next.players.find((player) => player.id === "p2").hand.length, bobBefore + 2);
 });
 
 test("reconnect token reattaches the same player identity and seat", () => {
@@ -162,4 +230,28 @@ test("AI seats can fill a room and advance after the human turn", () => {
   assert.equal(room.state.status, "active");
   assert.ok(room.state.currentPlayerId === host.playerId || room.state.winner);
   assert.ok(room.state.turnNumber > 1);
+});
+
+test("a full AI game plays to completion and produces a winner", () => {
+  const manager = new RoomManager(new GameStore());
+  const host = manager.createRoom({
+    playerName: "Alice",
+    seatIndex: 0,
+    aiSeats: [
+      { seatIndex: 1, personalityId: "closer" },
+      { seatIndex: 2, personalityId: "saboteur" },
+      { seatIndex: 3, personalityId: "bdc-hustler" }
+    ]
+  });
+
+  let room = manager.setReady(host.roomCode, host.playerId, true);
+
+  let guard = 0;
+  while (room.state.status === "active" && guard < 400) {
+    guard += 1;
+    room = manager.endTurn(host.roomCode, host.playerId);
+  }
+
+  assert.equal(room.state.status, "finished");
+  assert.ok(room.state.winner, "expected a winner");
 });

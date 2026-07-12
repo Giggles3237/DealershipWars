@@ -1,11 +1,11 @@
 const storageKey = "dealership-wars-art-studio";
 
 const typeColors = {
-  Client: "#d66a3d",
+  Customer: "#d66a3d",
   Vehicle: "#456e9f",
-  Employee: "#2b8c67",
-  Event: "#8d4aa8",
-  Legendary: "#bc8a1f"
+  Salesperson: "#2b8c67",
+  Action: "#8d4aa8",
+  Sabotage: "#b3342e"
 };
 
 const cardList = document.querySelector("#card-list");
@@ -75,11 +75,11 @@ const getCardState = (card) => {
 const buildPrompt = (card) => {
   const cardState = getCardState(card);
   const typeDirection = {
-    Client: "Make the customer personality instantly readable through pose, wardrobe, and expression.",
+    Customer: "Make the customer personality instantly readable through pose, wardrobe, and expression.",
     Vehicle: "Make the vehicle the hero subject with a showroom or road setting that supports its value.",
-    Employee: "Make the dealership role clear through tools, body language, and workplace details.",
-    Event: "Show the event as an energetic dealership disruption with one clear focal point.",
-    Legendary: "Make this feel rare, powerful, and table-stopping while still matching the deck."
+    Salesperson: "Make the dealership role clear through tools, body language, and workplace details.",
+    Action: "Show the play as an energetic dealership moment with one clear focal point, in vintage comic-book style.",
+    Sabotage: "Make the mischief against a rival dealership obvious and fun, with villainous comic-book energy."
   };
 
   return [

@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { getAiPersonality, SEAT_CONFIG } from "../shared/constants.js";
+import { baseCards } from "../shared/cards.js";
 import {
   addPlayerToGame,
   buildLegalActions,
@@ -234,46 +235,71 @@ export class RoomManager {
     const personality = getAiPersonality(player.personalityId);
     const weights = personality.weights;
     const action = entry.action;
-    let score = 50 + (Number(entry.cardValue) || 0);
+    const cardValue = Number(entry.cardValue) || 0;
+    let score = 50;
 
-    if (action.kind === "dealer-principal" || action.kind === "rush-delivery") {
-      score += 180 + (weights.delivery ?? 0);
+    if (action.kind === "close-sale") {
+      score += 150 + cardValue * 8 + (weights.closeSale ?? 0);
     }
-    if (action.kind === "team-profit") {
-      score += Math.abs(action.amount ?? 0) * 12;
-      score += action.teamIndex === player.teamIndex ? (weights.ownProfit ?? 0) : (weights.enemyProfit ?? 0);
+
+    if (action.kind === "recruit") {
+      score += 60 + cardValue * 6 + (weights.customer ?? 0);
     }
-    if (action.kind === "remove-client" || action.kind === "remove-employee" || action.kind === "recall" || action.kind === "chargeback") {
-      score += 95 + (weights.sabotage ?? 0);
-      const targetDeal = state.teams[action.teamIndex]?.slots[action.slotIndex];
-      if (targetDeal?.pendingSinceTeamTurn !== null) {
-        score += weights.denyDelivery ?? 0;
+
+    if (action.kind === "stock") {
+      score += 45 + cardValue * 4 + (weights.vehicle ?? 0);
+      if (player.customers.length > 0) {
+        score += (weights.closeSale ?? 0) / 2;
       }
     }
-    if (action.kind === "attach") {
-      score += weights.attachment ?? 0;
-      score += entry.cardType === "Client" ? (weights.client ?? 0) : 0;
-      score += entry.cardType === "Vehicle" ? (weights.vehicle ?? 0) : 0;
-      score += entry.cardType === "Employee" ? (weights.employee ?? 0) : 0;
-      if (["Receptionist", "GSM", "Superstar Employee"].includes(entry.cardName)) {
-        score += weights.protection ?? 0;
+
+    if (action.kind === "hire") {
+      score += 55 + cardValue * 4 + (weights.salesperson ?? 0);
+    }
+
+    if (action.kind === "action") {
+      const card = baseCards.find((base) => base.name === entry.cardName);
+      (card?.effects ?? []).forEach((effect) => {
+        if (effect.kind === "gain-cash") {
+          score += effect.amount * 10 + (weights.cash ?? 0);
+        }
+        if (effect.kind === "gain-rep" || effect.kind === "underdog-rep") {
+          score += effect.amount * 5 + (weights.rep ?? 0) / 2;
+        }
+        if (effect.kind === "draw" || effect.kind === "scry") {
+          score += effect.amount * 6 + (weights.draw ?? 0) / 2;
+        }
+        if (effect.kind === "raise-hand-limit" || effect.kind === "raise-customer-cap") {
+          score += 25 + (weights.engine ?? 0);
+        }
+        if (effect.kind === "car-value-bonus") {
+          score += 20 + effect.amount * 8 + (weights.carBonus ?? 0);
+        }
+        if (effect.kind === "extra-plays") {
+          score += 20;
+        }
+        if (effect.kind === "cash-per-rival-ahead") {
+          const rivalsAhead = state.players.filter(
+            (rival) => rival.id !== player.id && rival.customers.length > player.customers.length
+          ).length;
+          score += rivalsAhead * effect.amount * 10;
+        }
+        if (effect.kind === "self-discard") {
+          score -= effect.amount * 5;
+        }
+      });
+    }
+
+    if (action.kind === "sabotage") {
+      score += 70 + cardValue * 5 + (weights.sabotage ?? 0);
+      const target = state.players.find((rival) => rival.id === action.targetPlayerId);
+      if (target) {
+        score += Math.min(30, target.cash);
       }
-      const deal = state.teams[player.teamIndex]?.slots[action.slotIndex];
-      if (deal?.client && (deal.vehicle || deal.extraVehicles.length) && deal.employee) {
-        score += 120 + (weights.completion ?? 0);
-      }
     }
-    if (action.kind === "massive-trade") {
-      score += 60 + (weights.massiveTrade ?? 0);
-    }
-    if (action.kind === "search-client") {
-      score += 60 + (weights.searchClient ?? 0);
-    }
-    if (action.kind === "draw-one") {
-      score += 30;
-    }
-    if (action.kind === "extra-action") {
-      score += 70;
+
+    if (action.kind === "sabotage-all") {
+      score += 80 + (weights.sabotage ?? 0) + (weights.steal ?? 0);
     }
 
     return score;

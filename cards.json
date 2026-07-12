@@ -1,488 +1,649 @@
 [
   {
     "id": 1,
-    "name": "Dealer Principal",
-    "type": "Legendary",
-    "value": "Auto-Win",
-    "effect": "Immediately wins the current round. All pending deals for that team deliver instantly.",
-    "notes": "Can be stopped only by Manufacturer Audit.",
-    "artwork": "Powerful owner figure standing over a glowing deal desk."
-  },
-  {
-    "id": 2,
-    "name": "Manufacturer Audit",
-    "type": "Legendary",
-    "value": "0",
-    "effect": "Cancels Dealer Principal.",
-    "notes": "Can only be played in response to Dealer Principal.",
-    "artwork": "Corporate auditor with clipboard, flashlight, and paperwork storm."
-  },
-  {
-    "id": 3,
     "name": "First-Time Buyer",
-    "type": "Client",
-    "value": "2",
-    "effect": "Basic client.",
-    "notes": "+2 with Base Model Sedan or BMW X1.",
+    "type": "Customer",
+    "value": "1",
+    "bonus": 1,
+    "rep": 1,
+    "wants": ["economy"],
+    "effect": "Sale bonus +1 cash. Gain 1 Reputation when recruited.",
+    "notes": "Wants an economy car for +2 combo cash.",
     "artwork": "Nervous young buyer holding keys for the first time."
   },
   {
-    "id": 4,
+    "id": 2,
     "name": "College Graduate",
-    "type": "Client",
-    "value": "3",
-    "effect": "Gains +2 if paired with Factory Incentive.",
-    "notes": "Good entry-level buyer.",
+    "type": "Customer",
+    "value": "1",
+    "bonus": 1,
+    "rep": 1,
+    "wants": ["economy", "electric"],
+    "effect": "Sale bonus +1 cash. Gain 1 Reputation when recruited.",
+    "notes": "Wants an economy or electric car for +2 combo cash.",
     "artwork": "Graduate in cap and gown beside a new car."
   },
   {
-    "id": 5,
+    "id": 3,
     "name": "Family of Five",
-    "type": "Client",
-    "value": "4",
-    "effect": "Strong SUV combos.",
-    "notes": "+6 with BMW X5, +4 with BMW X3.",
+    "type": "Customer",
+    "value": "2",
+    "bonus": 2,
+    "rep": 1,
+    "wants": ["suv"],
+    "effect": "Sale bonus +2 cash. Gain 1 Reputation when recruited.",
+    "notes": "Wants an SUV for +2 combo cash.",
     "artwork": "Parents with kids, bags, stroller, and chaos."
   },
   {
-    "id": 6,
+    "id": 4,
     "name": "Empty Nester",
-    "type": "Client",
-    "value": "4",
-    "effect": "Gains +3 with MINI Cooper or BMW M2.",
-    "notes": "Wants something fun.",
+    "type": "Customer",
+    "value": "2",
+    "bonus": 2,
+    "rep": 1,
+    "wants": ["mini", "sport"],
+    "effect": "Sale bonus +2 cash. Gain 1 Reputation when recruited.",
+    "notes": "Wants something fun: MINI or sport for +2 combo cash.",
     "artwork": "Couple throwing luggage into a sporty car."
   },
   {
-    "id": 7,
+    "id": 5,
     "name": "Lease Return Customer",
-    "type": "Client",
-    "value": "5",
-    "effect": "+4 with any BMW vehicle.",
-    "notes": "Reliable repeat buyer.",
+    "type": "Customer",
+    "value": "2",
+    "bonus": 2,
+    "rep": 2,
+    "wants": ["luxury"],
+    "effect": "Sale bonus +2 cash. Gain 2 Reputation when recruited.",
+    "notes": "Wants a luxury car for +2 combo cash.",
     "artwork": "Customer handing over old keys and eyeing a new car."
   },
   {
-    "id": 8,
+    "id": 6,
+    "name": "Loyal Customer",
+    "type": "Customer",
+    "value": "2",
+    "bonus": 2,
+    "rep": 2,
+    "wants": [],
+    "loyal": true,
+    "effect": "Sale bonus +2 cash. Gain 2 Reputation when recruited. Stays in your showroom after you sell to them.",
+    "notes": "The only customer who keeps coming back.",
+    "artwork": "Beaming repeat customer waving from the showroom door."
+  },
+  {
+    "id": 7,
     "name": "BMW Enthusiast",
-    "type": "Client",
-    "value": "6",
-    "effect": "Huge M-car combos.",
-    "notes": "+8 with BMW M3, +6 with BMW M2.",
+    "type": "Customer",
+    "value": "3",
+    "bonus": 3,
+    "rep": 1,
+    "wants": ["sport"],
+    "effect": "Sale bonus +3 cash. Gain 1 Reputation when recruited.",
+    "notes": "Wants a sport car for +2 combo cash.",
     "artwork": "Fan wearing BMW gear, quoting chassis codes."
   },
   {
-    "id": 9,
-    "name": "MINI Fanatic",
-    "type": "Client",
-    "value": "6",
-    "effect": "+8 with MINI Cooper.",
-    "notes": "Hard to steal once paired with MINI.",
-    "artwork": "Cheerful MINI owner waving from a colorful car."
-  },
-  {
-    "id": 10,
+    "id": 8,
     "name": "Business Owner",
-    "type": "Client",
-    "value": "7",
-    "effect": "Strong luxury/EV combos.",
-    "notes": "+6 with BMW iX, +5 with BMW X5.",
+    "type": "Customer",
+    "value": "3",
+    "bonus": 3,
+    "rep": 2,
+    "wants": ["electric", "luxury"],
+    "effect": "Sale bonus +3 cash. Gain 2 Reputation when recruited.",
+    "notes": "Wants an electric or luxury car for +2 combo cash.",
     "artwork": "Confident business owner with briefcase and sunglasses."
   },
   {
-    "id": 11,
-    "name": "Out-of-State Buyer",
-    "type": "Client",
-    "value": "7",
-    "effect": "Gains +3 but is vulnerable to paperwork events.",
-    "notes": "High value, high hassle.",
-    "artwork": "Buyer surrounded by title forms and temp tags."
-  },
-  {
-    "id": 12,
+    "id": 9,
     "name": "Referral Customer",
-    "type": "Client",
-    "value": "8",
-    "effect": "+3 with any vehicle.",
-    "notes": "Cannot be affected by Bad Survey.",
+    "type": "Customer",
+    "value": "2",
+    "bonus": 2,
+    "rep": 3,
+    "wants": [],
+    "effect": "Sale bonus +2 cash. Gain 3 Reputation when recruited.",
+    "notes": "Word of mouth is the best advertising.",
     "artwork": "Happy customer pointing a friend toward the showroom."
   },
   {
-    "id": 13,
+    "id": 10,
+    "name": "VIP Client",
+    "type": "Customer",
+    "value": "4",
+    "bonus": 4,
+    "rep": 2,
+    "repRequirement": 4,
+    "wants": ["luxury"],
+    "effect": "Sale bonus +4 cash. Gain 2 Reputation when recruited. Requires 4 Reputation to recruit.",
+    "notes": "Wants a luxury car for +2 combo cash.",
+    "artwork": "Stylish VIP in sunglasses stepping out of a chauffeured car."
+  },
+  {
+    "id": 11,
     "name": "Corporate Fleet Buyer",
-    "type": "Client",
-    "value": "9",
-    "effect": "May pair with up to 3 vehicles.",
-    "notes": "+12 if sold with 3 vehicles.",
+    "type": "Customer",
+    "value": "5",
+    "bonus": 5,
+    "rep": 1,
+    "repRequirement": 6,
+    "wants": ["economy"],
+    "effect": "Sale bonus +5 cash. Requires 6 Reputation to recruit.",
+    "notes": "Wants economy cars for +2 combo cash. Buys in volume.",
     "artwork": "Executive with a clipboard ordering multiple cars."
   },
   {
-    "id": 14,
-    "name": "Luxury Shopper",
-    "type": "Client",
-    "value": "10",
-    "effect": "Gains +10 with Unicorn Allocation.",
-    "notes": "Big-value client.",
-    "artwork": "Stylish shopper examining premium interior leather."
-  },
-  {
-    "id": 15,
+    "id": 12,
     "name": "Dream Customer",
-    "type": "Client",
-    "value": "12",
-    "effect": "+5 with any vehicle.",
-    "notes": "Cannot be stolen once paired.",
+    "type": "Customer",
+    "value": "6",
+    "bonus": 6,
+    "rep": 2,
+    "repRequirement": 8,
+    "wants": [],
+    "effect": "Sale bonus +6 cash. Gain 2 Reputation when recruited. Requires 8 Reputation to recruit.",
+    "notes": "Says yes to everything. Every dealership wants them.",
     "artwork": "Glowing angelic customer saying yes immediately."
   },
   {
-    "id": 16,
+    "id": 13,
     "name": "High Mileage Trade",
     "type": "Vehicle",
-    "value": "1",
-    "effect": "Weak vehicle unless boosted.",
-    "notes": "Used Car Manager makes it +5.",
+    "value": "2",
+    "profit": 2,
+    "tags": ["economy"],
+    "effect": "Sells for 2 cash plus bonuses.",
+    "notes": "Runs great. Mostly.",
     "artwork": "Beat-up trade-in with heroic confidence."
   },
   {
-    "id": 17,
+    "id": 14,
     "name": "Service Loaner",
     "type": "Vehicle",
     "value": "2",
-    "effect": "Can become Certified Pre-Owned with Product Genius.",
-    "notes": "Good low-value setup card.",
+    "profit": 2,
+    "tags": ["economy"],
+    "effect": "Sells for 2 cash plus bonuses.",
+    "notes": "Low miles, faint smell of coffee.",
     "artwork": "Loaner car with coffee cups and mileage stickers."
   },
   {
-    "id": 18,
+    "id": 15,
     "name": "Base Model Sedan",
     "type": "Vehicle",
     "value": "3",
-    "effect": "+2 with First-Time Buyer.",
+    "profit": 3,
+    "tags": ["economy"],
+    "effect": "Sells for 3 cash plus bonuses.",
     "notes": "Simple starter vehicle.",
     "artwork": "Clean, modest sedan under showroom lights."
   },
   {
-    "id": 19,
-    "name": "Certified Pre-Owned",
-    "type": "Vehicle",
-    "value": "4",
-    "effect": "+2 with Lease Return Customer.",
-    "notes": "Safe, flexible vehicle.",
-    "artwork": "CPO badge shining on windshield."
-  },
-  {
-    "id": 20,
+    "id": 16,
     "name": "MINI Cooper",
     "type": "Vehicle",
-    "value": "4",
-    "effect": "+8 with MINI Fanatic.",
-    "notes": "+3 with Empty Nester.",
+    "value": "3",
+    "profit": 3,
+    "tags": ["mini"],
+    "effect": "Sells for 3 cash plus bonuses.",
+    "notes": "Small car, big personality.",
     "artwork": "Bright MINI darting through city streets."
   },
   {
-    "id": 21,
+    "id": 17,
     "name": "BMW X1",
     "type": "Vehicle",
-    "value": "5",
-    "effect": "+2 with First-Time Buyer.",
+    "value": "4",
+    "profit": 4,
+    "tags": ["suv", "economy"],
+    "effect": "Sells for 4 cash plus bonuses.",
     "notes": "Entry luxury crossover.",
     "artwork": "Compact BMW SUV outside a coffee shop."
   },
   {
-    "id": 22,
+    "id": 18,
     "name": "BMW 330i",
     "type": "Vehicle",
-    "value": "6",
-    "effect": "+3 with BMW Enthusiast.",
+    "value": "4",
+    "profit": 4,
+    "tags": ["sport"],
+    "effect": "Sells for 4 cash plus bonuses.",
     "notes": "Classic BMW deal.",
     "artwork": "Sport sedan on a winding road."
   },
   {
-    "id": 23,
+    "id": 19,
     "name": "BMW X3",
     "type": "Vehicle",
-    "value": "7",
-    "effect": "+4 with Family of Five.",
+    "value": "5",
+    "profit": 5,
+    "tags": ["suv"],
+    "effect": "Sells for 5 cash plus bonuses.",
     "notes": "High-demand inventory.",
     "artwork": "X3 packed for a family weekend."
   },
   {
-    "id": 24,
+    "id": 20,
     "name": "BMW X5",
     "type": "Vehicle",
-    "value": "8",
-    "effect": "+6 with Family of Five, +5 with Business Owner.",
+    "value": "6",
+    "profit": 6,
+    "tags": ["suv", "luxury"],
+    "effect": "Sells for 6 cash plus bonuses.",
     "notes": "Premium SUV anchor card.",
     "artwork": "X5 parked outside an upscale restaurant."
   },
   {
-    "id": 25,
+    "id": 21,
     "name": "BMW iX",
     "type": "Vehicle",
-    "value": "9",
-    "effect": "+6 with Business Owner.",
-    "notes": "Can be boosted by Factory Incentive.",
+    "value": "6",
+    "profit": 6,
+    "tags": ["electric", "luxury"],
+    "effect": "Sells for 6 cash plus bonuses.",
+    "notes": "The future, on wheels.",
     "artwork": "Futuristic EV glowing under neon lights."
   },
   {
-    "id": 26,
+    "id": 22,
     "name": "BMW M2",
     "type": "Vehicle",
-    "value": "10",
-    "effect": "+6 with BMW Enthusiast, +3 with Empty Nester.",
+    "value": "7",
+    "profit": 7,
+    "tags": ["sport"],
+    "effect": "Sells for 7 cash plus bonuses.",
     "notes": "Fun performance card.",
     "artwork": "Small aggressive coupe on a track."
   },
   {
-    "id": 27,
+    "id": 23,
     "name": "BMW M3",
     "type": "Vehicle",
-    "value": "11",
-    "effect": "+8 with BMW Enthusiast.",
-    "notes": "One of the strongest normal vehicles.",
+    "value": "8",
+    "profit": 8,
+    "tags": ["sport", "luxury"],
+    "effect": "Sells for 8 cash plus bonuses.",
+    "notes": "One of the strongest vehicles on the lot.",
     "artwork": "M3 launching dramatically from a stoplight."
   },
   {
-    "id": 28,
+    "id": 24,
     "name": "Unicorn Allocation",
     "type": "Vehicle",
-    "value": "15",
-    "effect": "+10 with Luxury Shopper.",
+    "value": "10",
+    "profit": 10,
+    "tags": ["luxury", "sport"],
+    "effect": "Sells for 10 cash plus bonuses.",
     "notes": "Rare, highest-value vehicle.",
     "artwork": "Mythical glowing car wrapped in allocation paperwork."
   },
   {
-    "id": 29,
+    "id": 25,
     "name": "New Hire",
-    "type": "Employee",
+    "type": "Salesperson",
     "value": "1",
-    "effect": "Adds +1 to one sale.",
-    "notes": "Low value, but useful.",
+    "passive": "on-sale-cash",
+    "amount": 1,
+    "effect": "Each sale you close earns +1 cash.",
+    "notes": "Low value, high enthusiasm.",
     "artwork": "Excited new salesperson holding a giant training binder."
   },
   {
-    "id": 30,
-    "name": "Porter",
-    "type": "Employee",
-    "value": "0",
-    "effect": "Draw 1 card when played.",
-    "notes": "Fast utility card.",
-    "artwork": "Porter sprinting across lot with keys."
+    "id": 26,
+    "name": "Closer Extraordinaire",
+    "type": "Salesperson",
+    "value": "1",
+    "passive": "on-customer-cash",
+    "amount": 1,
+    "effect": "When you recruit a Customer, gain 1 cash.",
+    "notes": "Relationships close deals. Trust closes everything.",
+    "artwork": "Slick salesperson pointing with car keys and a huge grin."
   },
   {
-    "id": 31,
-    "name": "Receptionist",
-    "type": "Employee",
-    "value": "0",
-    "effect": "Protects one Client from being stolen or discarded.",
-    "notes": "Defensive card.",
-    "artwork": "Receptionist calmly stopping chaos at the front desk."
-  },
-  {
-    "id": 32,
-    "name": "BDC Agent",
-    "type": "Employee",
-    "value": "0",
-    "effect": "Search discard pile or deck for one Client.",
-    "notes": "Shuffle deck afterward if searched.",
-    "artwork": "Agent wearing headset surrounded by lead alerts."
-  },
-  {
-    "id": 33,
+    "id": 27,
     "name": "Product Genius",
-    "type": "Employee",
-    "value": "2",
-    "effect": "+2 to BMW vehicle sales.",
-    "notes": "Can upgrade Service Loaner to CPO.",
+    "type": "Salesperson",
+    "value": "1",
+    "passive": "on-vehicle-rep",
+    "amount": 1,
+    "effect": "When you stock a Vehicle, gain 1 Reputation.",
+    "notes": "Explains every feature with dramatic confidence.",
     "artwork": "Genius explaining tech with dramatic confidence."
   },
   {
-    "id": 34,
-    "name": "Finance Coordinator",
-    "type": "Employee",
+    "id": 28,
+    "name": "BDC Agent",
+    "type": "Salesperson",
     "value": "1",
-    "effect": "+1 to every delivered deal while active.",
-    "notes": "Team support card.",
-    "artwork": "Coordinator buried under deal jackets."
+    "passive": "turn-draw",
+    "amount": 1,
+    "effect": "Draw 1 extra card at the start of your turn.",
+    "notes": "Keeps the leads flowing.",
+    "artwork": "Agent wearing headset surrounded by lead alerts."
   },
   {
-    "id": 35,
+    "id": 29,
     "name": "Service Advisor",
-    "type": "Employee",
+    "type": "Salesperson",
     "value": "1",
-    "effect": "Gain +1 whenever an Event is played.",
-    "notes": "Benefits from chaos.",
+    "passive": "turn-cash",
+    "amount": 1,
+    "effect": "Gain 1 cash at the start of your turn.",
+    "notes": "Fixed ops pays the bills.",
     "artwork": "Advisor holding repair order as phones ring."
   },
   {
-    "id": 36,
-    "name": "Client Advisor",
-    "type": "Employee",
-    "value": "2",
-    "effect": "+2 to all sales.",
-    "notes": "Reliable sales booster.",
-    "artwork": "Salesperson presenting keys with a smile."
-  },
-  {
-    "id": 37,
+    "id": 30,
     "name": "F&I Manager",
-    "type": "Employee",
-    "value": "3",
-    "effect": "+3 to all sales. Required for Credit Criminal if added later.",
-    "notes": "Strong employee card.",
+    "type": "Salesperson",
+    "value": "2",
+    "passive": "on-sale-cash",
+    "amount": 2,
+    "effect": "Each sale you close earns +2 cash.",
+    "notes": "Finds gross where nobody else can.",
     "artwork": "Finance manager at desk with menus and contracts."
   },
   {
-    "id": 38,
-    "name": "Used Car Manager",
-    "type": "Employee",
-    "value": "2",
-    "effect": "High Mileage Trade gains +5 value.",
-    "notes": "Makes weak cars useful.",
-    "artwork": "Manager appraising trade with flashlight."
-  },
-  {
-    "id": 39,
+    "id": 31,
     "name": "Sales Manager",
-    "type": "Employee",
-    "value": "0",
-    "effect": "Team may play one extra card on that player's next turn.",
+    "type": "Salesperson",
+    "value": "1",
+    "passive": "extra-play",
+    "amount": 1,
+    "effect": "You may play 1 additional card each of your turns.",
     "notes": "Strong tempo card.",
     "artwork": "Desk manager pointing at a four-square worksheet."
   },
   {
-    "id": 40,
-    "name": "GSM",
-    "type": "Employee",
+    "id": 32,
+    "name": "Legendary Salesman",
+    "type": "Salesperson",
+    "value": "3",
+    "passive": "on-sale-cash",
+    "amount": 3,
+    "effect": "Each sale you close earns +3 cash.",
+    "notes": "They named a showroom after him.",
+    "artwork": "Silver-haired legend in front of a wall of sales plaques."
+  },
+  {
+    "id": 33,
+    "name": "Cold Call",
+    "type": "Action",
+    "value": "2",
+    "effects": [
+      { "kind": "gain-cash", "amount": 2 },
+      { "kind": "draw", "amount": 1 },
+      { "kind": "underdog-rep", "amount": 1 }
+    ],
+    "effect": "Gain 2 cash and draw 1 card. If every rival has more Customers than you, gain 1 Reputation.",
+    "notes": "Smile and dial.",
+    "artwork": "Grinning salesperson working the phone in a busy showroom."
+  },
+  {
+    "id": 34,
+    "name": "Marketing Campaign",
+    "type": "Action",
+    "value": "2",
+    "effects": [
+      { "kind": "gain-rep", "amount": 2 },
+      { "kind": "draw", "amount": 1 }
+    ],
+    "effect": "Gain 2 Reputation and draw 1 card.",
+    "notes": "Get the name out there.",
+    "artwork": "Salesperson with a megaphone in front of banners and balloons."
+  },
+  {
+    "id": 35,
+    "name": "Flash Sale",
+    "type": "Action",
+    "value": "3",
+    "effects": [
+      { "kind": "gain-cash", "amount": 3 },
+      { "kind": "draw", "amount": 1 }
+    ],
+    "effect": "Gain 3 cash and draw 1 card.",
+    "notes": "This weekend only!",
+    "artwork": "Giant FLASH SALE starburst over a row of cars."
+  },
+  {
+    "id": 36,
+    "name": "Trade Show",
+    "type": "Action",
     "value": "0",
-    "effect": "Once per turn, cancel one sabotage card targeting your team.",
-    "notes": "Major protection card.",
-    "artwork": "GSM holding back chaos with one hand."
+    "effects": [
+      { "kind": "draw", "amount": 3 },
+      { "kind": "self-discard", "amount": 1 }
+    ],
+    "effect": "Draw 3 cards, then discard 1 card.",
+    "notes": "Auto expo networking pays off.",
+    "artwork": "Crowded auto expo floor with spotlights."
+  },
+  {
+    "id": 37,
+    "name": "Sales Training",
+    "type": "Action",
+    "value": "0",
+    "effects": [
+      { "kind": "extra-plays", "amount": 1 },
+      { "kind": "draw", "amount": 1 }
+    ],
+    "effect": "You may play 1 additional card this turn. Draw 1 card.",
+    "notes": "Closing rate up and to the right.",
+    "artwork": "Trainer at a whiteboard labeled CLOSING RATE."
+  },
+  {
+    "id": 38,
+    "name": "Grand Opening",
+    "type": "Action",
+    "value": "3",
+    "effects": [
+      { "kind": "gain-cash", "amount": 3 },
+      { "kind": "draw", "amount": 2 }
+    ],
+    "effect": "Gain 3 cash and draw 2 cards.",
+    "notes": "Ribbon cutting, balloons, the works.",
+    "artwork": "Ribbon-cutting ceremony with red balloons."
+  },
+  {
+    "id": 39,
+    "name": "Showroom Expansion",
+    "type": "Action",
+    "value": "0",
+    "effects": [
+      { "kind": "raise-customer-cap", "amount": 1 },
+      { "kind": "draw", "amount": 1 }
+    ],
+    "effect": "You may have 1 additional Customer in your showroom. Draw 1 card.",
+    "notes": "More floor space, more deals.",
+    "artwork": "Construction crew expanding a gleaming showroom."
+  },
+  {
+    "id": 40,
+    "name": "New Location",
+    "type": "Action",
+    "value": "0",
+    "effects": [
+      { "kind": "raise-customer-cap", "amount": 1 },
+      { "kind": "draw", "amount": 1 }
+    ],
+    "effect": "You may have 1 additional Customer in your showroom. Draw 1 card.",
+    "notes": "Now serving the whole valley.",
+    "artwork": "Map with a NEW! pin dropped on it."
   },
   {
     "id": 41,
-    "name": "Superstar Employee",
-    "type": "Employee",
-    "value": "4",
-    "effect": "Counts as any Employee. May protect any one card once.",
-    "notes": "Flexible power card.",
-    "artwork": "Heroic employee with cape made of deal jackets."
+    "name": "Website Upgrade",
+    "type": "Action",
+    "value": "0",
+    "effects": [
+      { "kind": "raise-hand-limit", "amount": 1 },
+      { "kind": "draw", "amount": 1 }
+    ],
+    "effect": "Increase your hand size limit by 1. Draw 1 card.",
+    "notes": "New website live!",
+    "artwork": "Monitor showing a shiny new dealership website."
   },
   {
     "id": 42,
-    "name": "Bad Survey",
-    "type": "Event",
-    "value": "-5",
-    "effect": "Target team loses 5 profit.",
-    "notes": "Does not affect Referral Customer deals.",
-    "artwork": "Angry survey form glowing red."
+    "name": "Premium Inventory",
+    "type": "Action",
+    "value": "0",
+    "effects": [
+      { "kind": "car-value-bonus", "amount": 1 },
+      { "kind": "draw", "amount": 1 }
+    ],
+    "effect": "Your cars are worth 1 more cash when sold, for the rest of the game. Draw 1 card.",
+    "notes": "Only the good stuff on this lot.",
+    "artwork": "Row of exotic cars gleaming on the front line."
   },
   {
     "id": 43,
-    "name": "Chargeback",
-    "type": "Event",
+    "name": "Luxury Upgrade",
+    "type": "Action",
     "value": "0",
-    "effect": "Cut opponent's most recent delivered sale profit in half.",
-    "notes": "Cannot reduce below 5 profit.",
-    "artwork": "Money flying backward out of a cash drawer."
+    "effects": [
+      { "kind": "car-value-bonus", "amount": 2 }
+    ],
+    "effect": "Your cars are worth 2 more cash when sold, for the rest of the game.",
+    "notes": "Velvet ropes on the showroom floor.",
+    "artwork": "Sedan behind velvet ropes under a spotlight."
   },
   {
     "id": 44,
-    "name": "Factory Incentive",
-    "type": "Event",
-    "value": "5",
-    "effect": "Attach to one Vehicle. Vehicle gains +5.",
-    "notes": "+2 extra with College Graduate.",
-    "artwork": "Giant incentive banner falling from ceiling."
+    "name": "Market Research",
+    "type": "Action",
+    "value": "0",
+    "effects": [
+      { "kind": "scry", "amount": 4 }
+    ],
+    "effect": "Look at the top 4 cards of the deck. Put the best one in your hand and discard the rest.",
+    "notes": "Know the market, beat the market.",
+    "artwork": "Analyst with pie charts and market reports."
   },
   {
     "id": 45,
-    "name": "Recall Campaign",
-    "type": "Event",
-    "value": "-2",
-    "effect": "All active Vehicles lose 2 value until your next turn.",
-    "notes": "Cannot reduce below 1.",
-    "artwork": "Recall notice stamped across windshields."
+    "name": "Corporate Contact",
+    "type": "Action",
+    "value": "0",
+    "effects": [
+      { "kind": "scry", "amount": 3 }
+    ],
+    "effect": "Look at the top 3 cards of the deck. Put the best one in your hand and discard the rest.",
+    "notes": "A friend at the factory never hurts.",
+    "artwork": "Executive on the phone with corporate headquarters."
   },
   {
     "id": 46,
-    "name": "Employee Quits",
-    "type": "Event",
-    "value": "0",
-    "effect": "Opponent discards one Employee.",
-    "notes": "Cannot target Superstar Employee if unused protection remains.",
-    "artwork": "Employee walking out with box of desk items."
+    "name": "Referral Bonus",
+    "type": "Action",
+    "value": "2",
+    "effects": [
+      { "kind": "cash-per-rival-ahead", "amount": 2 },
+      { "kind": "draw", "amount": 1 }
+    ],
+    "effect": "Gain 2 cash for each rival that has more Customers than you. Draw 1 card.",
+    "notes": "The comeback starts now.",
+    "artwork": "Salesperson giving a thumbs up under a REFERRAL BONUS banner."
   },
   {
     "id": 47,
-    "name": "Massive Trade",
-    "type": "Event",
-    "value": "0",
-    "effect": "Draw until you reveal 3 Vehicles. Keep them, discard the rest.",
-    "notes": "Strong inventory reload.",
-    "artwork": "Car hauler unloading surprise trade-ins."
+    "name": "Last Minute Deal",
+    "type": "Action",
+    "value": "2",
+    "effects": [
+      { "kind": "gain-cash", "amount": 2 },
+      { "kind": "extra-plays", "amount": 1 }
+    ],
+    "effect": "Gain 2 cash. You may play 1 additional card this turn.",
+    "notes": "The month ends at midnight.",
+    "artwork": "Alarm clock ringing over a frantic deal desk."
   },
   {
     "id": 48,
-    "name": "Viral Social Post",
-    "type": "Event",
-    "value": "5",
-    "effect": "Gain 5 profit immediately.",
-    "notes": "+2 if MINI Cooper is active.",
-    "artwork": "Phone screen exploding with likes and shares."
+    "name": "Inventory Blowout",
+    "type": "Action",
+    "value": "4",
+    "effects": [
+      { "kind": "gain-cash", "amount": 4 },
+      { "kind": "self-discard", "amount": 2 }
+    ],
+    "effect": "Gain 4 cash, then discard 2 cards.",
+    "notes": "Everything must go!",
+    "artwork": "BLOWOUT SALE banner over a packed car lot."
   },
   {
     "id": 49,
-    "name": "Internet Lead Ghosts You",
-    "type": "Event",
+    "name": "Competitor Spy",
+    "type": "Sabotage",
     "value": "0",
-    "effect": "Opponent discards one unprotected Client.",
+    "effects": [
+      { "kind": "rob-hand" }
+    ],
+    "effect": "Look at a rival's hand. They discard their best card.",
+    "notes": "Industrial espionage, dealership style.",
+    "artwork": "Trench-coated spy with binoculars watching a rival lot."
+  },
+  {
+    "id": 50,
+    "name": "False Rumors",
+    "type": "Sabotage",
+    "value": "2",
+    "effects": [
+      { "kind": "lose-rep", "amount": 2 },
+      { "kind": "lose-worst-customer" }
+    ],
+    "effect": "A rival loses 2 Reputation and their least valuable Customer leaves.",
+    "notes": "In this town, talk is cheap and damage is expensive.",
+    "artwork": "Two gossips whispering as a storm brews over a rival dealership."
+  },
+  {
+    "id": 51,
+    "name": "Bad Survey",
+    "type": "Sabotage",
+    "value": "3",
+    "effects": [
+      { "kind": "lose-rep", "amount": 3 }
+    ],
+    "effect": "A rival loses 3 Reputation.",
+    "notes": "One star. Would not recommend.",
+    "artwork": "Angry survey form glowing red."
+  },
+  {
+    "id": 52,
+    "name": "Chargeback",
+    "type": "Sabotage",
+    "value": "3",
+    "effects": [
+      { "kind": "lose-cash", "amount": 3 }
+    ],
+    "effect": "A rival loses 3 cash.",
+    "notes": "Money flying backward out of the drawer.",
+    "artwork": "Money flying backward out of a cash drawer."
+  },
+  {
+    "id": 53,
+    "name": "Internet Lead Ghosts You",
+    "type": "Sabotage",
+    "value": "0",
+    "effects": [
+      { "kind": "lose-best-customer" }
+    ],
+    "effect": "A rival's best Customer leaves their showroom.",
     "notes": "Classic deal killer.",
     "artwork": "Empty chat bubble and abandoned coffee."
   },
   {
-    "id": 50,
-    "name": "Google Review Hero",
-    "type": "Event",
-    "value": "3",
-    "effect": "Attach to Employee. Gain +3 when that employee helps deliver a deal.",
-    "notes": "Good long-term boost.",
-    "artwork": "Five-star review shining over employee's head."
-  },
-  {
-    "id": 51,
-    "name": "End-of-Month Rush",
-    "type": "Event",
-    "value": "0",
-    "effect": "Deliver one eligible active deal immediately.",
-    "notes": "Deal must already have Client + Vehicle.",
-    "artwork": "Clock striking midnight in a frantic showroom."
-  },
-  {
-    "id": 52,
-    "name": "Market Adjustment",
-    "type": "Event",
-    "value": "5",
-    "effect": "Attach to one Vehicle. Vehicle gains +5.",
-    "notes": "Cannot attach to Base Model Sedan.",
-    "artwork": "Window sticker with absurd addendum sticker."
-  },
-  {
-    "id": 53,
-    "name": "Customer For Life",
-    "type": "Event",
-    "value": "0",
-    "effect": "Attach to Client. After delivery, Client returns to your hand.",
-    "notes": "Cannot attach to Dream Customer.",
-    "artwork": "Customer happily returning with coffee and referrals."
-  },
-  {
     "id": 54,
-    "name": "Record Month",
-    "type": "Event",
-    "value": "10",
-    "effect": "Gain 10 profit immediately.",
-    "notes": "If played after delivering a deal, gain +3 extra.",
-    "artwork": "Whole dealership celebrating under balloons."
+    "name": "Market Domination",
+    "type": "Sabotage",
+    "value": "0",
+    "effects": [
+      { "kind": "steal-customer-each" }
+    ],
+    "effect": "Steal the best Customer from each rival, while you have showroom space.",
+    "notes": "The best offense is a bigger billboard.",
+    "artwork": "Triumphant dealer looming over the city skyline."
   }
 ]

@@ -181,6 +181,108 @@ body::before {
   color: var(--accent-2);
 }
 
+.animation-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  padding: 18px;
+}
+
+.animation-layer:empty {
+  display: none;
+}
+
+.play-spotlight {
+  position: relative;
+  isolation: isolate;
+  width: min(680px, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: minmax(140px, 210px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(145deg, rgba(255, 254, 249, 0.96), rgba(255, 238, 210, 0.94)),
+    var(--surface-strong);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 28px 80px rgba(36, 22, 12, 0.28);
+  animation: spotlight-pop 1200ms cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+
+.play-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(circle at center, rgba(36, 22, 12, 0.28), transparent 58%);
+}
+
+.spotlight-card-frame {
+  transform: rotate(-3deg);
+  animation: card-sway 1200ms ease both;
+}
+
+.spotlight-card-frame img {
+  width: 100%;
+  aspect-ratio: 744 / 1038;
+  display: block;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: 0 22px 42px rgba(65, 39, 19, 0.24);
+}
+
+.spotlight-copy {
+  min-width: 0;
+}
+
+.spotlight-copy .eyebrow {
+  color: var(--accent-2);
+}
+
+.spotlight-copy h3 {
+  margin: 8px 0 0;
+  font-size: clamp(1.35rem, 3vw, 2.2rem);
+  line-height: 1.02;
+}
+
+.spotlight-copy p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.dealer-panel.is-acting,
+.dealer-panel.is-targeted,
+.dealer-panel.is-rewarded {
+  position: relative;
+  z-index: 2;
+}
+
+.dealer-panel.is-acting {
+  animation: actor-glow 1300ms ease both;
+}
+
+.dealer-panel.is-targeted {
+  animation: target-shake 1100ms ease both;
+}
+
+.dealer-panel.is-rewarded {
+  animation: reward-glow 1100ms ease both;
+}
+
+.chip.is-popping,
+.stat-card.is-popping {
+  animation: resource-pop 900ms ease both;
+}
+
+.log-list li.is-new {
+  animation: log-slide 700ms ease both;
+}
+
 .panel,
 .game-layout {
   margin-top: 18px;
@@ -397,19 +499,141 @@ button:disabled {
 }
 
 .board-grid {
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 2.2fr) minmax(300px, 1fr);
   margin-top: 18px;
+  align-items: start;
 }
 
-.team-panel,
 .center-panel {
   min-width: 0;
 }
 
-.team-heading {
-  align-items: end;
-  justify-content: space-between;
+.dealer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+  min-width: 0;
+}
+
+.dealer-panel {
+  margin-top: 0;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.dealer-panel.is-active {
+  border-color: rgba(180, 81, 39, 0.5);
+  box-shadow: inset 0 0 0 2px rgba(180, 81, 39, 0.22), var(--shadow);
+}
+
+.dealer-panel.is-self {
+  background: var(--surface-strong);
+}
+
+.dealer-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.dealer-head h3 {
+  margin: 4px 0 0;
+}
+
+.resource-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.chip {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.chip-cash {
+  background: rgba(46, 124, 87, 0.14);
+  color: var(--success);
+}
+
+.chip-rep {
+  background: rgba(188, 138, 31, 0.16);
+  color: #8a6413;
+}
+
+.chip-bonus {
+  background: rgba(69, 110, 159, 0.14);
+  color: var(--accent-2);
+}
+
+.tableau-row {
+  display: grid;
+  gap: 8px;
+}
+
+.row-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.row-label span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.row-label small {
+  color: var(--muted);
+}
+
+.row-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.row-cards .mini-card {
+  flex: 1 1 130px;
+  min-width: 0;
+}
+
+.mini-detail {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.row-empty {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(36, 22, 12, 0.16);
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.sale-bar {
+  border-color: rgba(46, 124, 87, 0.3);
+}
+
+.sale-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .player-strip {
@@ -571,6 +795,10 @@ button:disabled {
   .board-grid {
     grid-template-columns: 1fr;
   }
+
+  .dealer-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -595,5 +823,132 @@ button:disabled {
 
   .ai-setup-grid {
     grid-template-columns: 1fr;
+  }
+
+  .play-spotlight {
+    grid-template-columns: 1fr;
+    max-width: 360px;
+  }
+
+  .spotlight-card-frame {
+    max-width: 180px;
+    justify-self: center;
+  }
+}
+
+@keyframes spotlight-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(26px) scale(0.88);
+  }
+
+  18%,
+  78% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.97);
+  }
+}
+
+@keyframes card-sway {
+  0% {
+    transform: translateY(18px) rotate(-9deg) scale(0.94);
+  }
+
+  25%,
+  82% {
+    transform: translateY(0) rotate(-3deg) scale(1);
+  }
+
+  100% {
+    transform: translateY(-8px) rotate(1deg) scale(0.98);
+  }
+}
+
+@keyframes actor-glow {
+  0%,
+  100% {
+    box-shadow: var(--shadow);
+  }
+
+  18%,
+  76% {
+    box-shadow: inset 0 0 0 3px rgba(180, 81, 39, 0.38), 0 0 0 6px rgba(180, 81, 39, 0.12), var(--shadow);
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes target-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+    box-shadow: var(--shadow);
+  }
+
+  18% {
+    transform: translateX(-4px);
+  }
+
+  26% {
+    transform: translateX(4px);
+  }
+
+  34%,
+  74% {
+    box-shadow: inset 0 0 0 3px rgba(152, 58, 72, 0.38), 0 0 0 6px rgba(152, 58, 72, 0.12), var(--shadow);
+  }
+}
+
+@keyframes reward-glow {
+  0%,
+  100% {
+    box-shadow: var(--shadow);
+  }
+
+  20%,
+  75% {
+    box-shadow: inset 0 0 0 3px rgba(46, 124, 87, 0.36), 0 0 0 6px rgba(46, 124, 87, 0.12), var(--shadow);
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes resource-pop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  35% {
+    transform: scale(1.12);
+  }
+
+  70% {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes log-slide {
+  0% {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
   }
 }

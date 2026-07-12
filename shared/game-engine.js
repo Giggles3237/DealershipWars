@@ -1,21 +1,24 @@
-import { BASE_ACTIONS_PER_TURN, MAX_LOG, OPENING_HAND_SIZE, SEAT_CONFIG, TEAM_CONFIG, WIN_TARGET } from "./constants.js";
-import { cloneDeck, getNumericCardValue } from "./cards.js";
+import {
+  BASE_CUSTOMER_CAP,
+  BASE_HAND_LIMIT,
+  BASE_PLAYS_PER_TURN,
+  CARDS_DRAWN_PER_TURN,
+  CASH_TARGET,
+  MAX_LOG,
+  MAX_TURNS,
+  OPENING_HAND_SIZE,
+  SALES_TEAM_CAP,
+  SEAT_CONFIG
+} from "./constants.js";
+import { baseCards, cloneDeck, getNumericCardValue, shuffleCards } from "./cards.js";
 import { serializePrivateView, serializePublicState, stableStringify } from "./game-serialization.js";
 
-const sabotageNames = new Set([
-  "Bad Survey",
-  "Chargeback",
-  "Recall Campaign",
-  "Employee Quits",
-  "Internet Lead Ghosts You"
-]);
+const sabotageNames = new Set(baseCards.filter((card) => card.type === "Sabotage").map((card) => card.name));
 
 const cloneState = (state) => structuredClone(state);
-const opposingTeamIndex = (teamIndex) => (teamIndex === 0 ? 1 : 0);
 const getPlayer = (state, playerId) => state.players.find((player) => player.id === playerId);
 const getCurrentPlayer = (state) => getPlayer(state, state.currentPlayerId);
-const getDeal = (state, teamIndex, slotIndex) => state.teams[teamIndex].slots[slotIndex];
-const getCardValue = (card) => getNumericCardValue(card);
+const getRivals = (state, player) => state.players.filter((entry) => entry.id !== player.id);
 const cardLabel = (card) => `${card.name} (${card.type})`;
 
 const pushLog = (state, message) => {
@@ -23,19 +26,26 @@ const pushLog = (state, message) => {
   state.log = state.log.slice(0, MAX_LOG);
 };
 
+const reshuffleDiscardIntoDeck = (state) => {
+  if (state.deck.length || !state.discard.length) {
+    return;
+  }
+  state.deck = shuffleCards(state.discard);
+  state.discard = [];
+  pushLog(state, "The discard pile was shuffled back into the deck.");
+};
+
 const drawCards = (state, player, count) => {
   const drawn = [];
-
   for (let index = 0; index < count; index += 1) {
+    reshuffleDiscardIntoDeck(state);
     if (!state.deck.length) {
       break;
     }
-
     const card = state.deck.shift();
     player.hand.push(card);
     drawn.push(card);
   }
-
   return drawn;
 };
 
@@ -43,565 +53,328 @@ const discardCards = (state, cards) => {
   cards.filter(Boolean).forEach((card) => state.discard.unshift(card));
 };
 
-const getVehiclesForDeal = (deal) => {
-  if (!deal) {
-    return [];
-  }
-
-  return [deal.vehicle, ...deal.extraVehicles].filter(Boolean);
-};
-
-const getVehicleCount = (deal) => getVehiclesForDeal(deal).length;
-
-const getEffectiveVehicleName = (deal, vehicleCard) => {
-  if (!vehicleCard) {
-    return null;
-  }
-
-  if (vehicleCard.name === "Service Loaner" && deal.employee?.name === "Product Genius") {
-    return "Certified Pre-Owned";
-  }
-
-  return vehicleCard.name;
-};
-
-const getEffectiveVehicleValue = (deal, vehicleCard) => {
-  if (!vehicleCard) {
-    return 0;
-  }
-
-  if (vehicleCard.name === "Service Loaner" && deal.employee?.name === "Product Genius") {
-    return 4;
-  }
-
-  return getCardValue(vehicleCard);
-};
-
-const dealCanTakeVehicle = (deal) => {
-  if (!deal || !deal.vehicle) {
-    return true;
-  }
-
-  return deal.client?.name === "Corporate Fleet Buyer" && getVehicleCount(deal) < 3;
-};
-
-const ensureDeal = (state, teamIndex, slotIndex, ownerPlayerId) => {
-  const existing = getDeal(state, teamIndex, slotIndex);
-  if (existing) {
-    return existing;
-  }
-
-  const deal = {
-    teamIndex,
-    slotIndex,
-    ownerPlayerId,
-    slotLabel: TEAM_CONFIG[teamIndex].slotLabels[slotIndex],
-    client: null,
-    vehicle: null,
-    extraVehicles: [],
-    employee: null,
-    attachments: [],
-    pendingSinceTeamTurn: null,
-    superstarShieldUsed: false
-  };
-
-  state.teams[teamIndex].slots[slotIndex] = deal;
-  return deal;
-};
-
-const getActiveTeamEmployeeNames = (state, teamIndex) =>
-  state.teams[teamIndex].slots
-    .filter(Boolean)
-    .map((deal) => deal.employee?.name)
-    .filter(Boolean);
-
-const getTeamVehiclePenalty = (state, teamIndex) => {
-  const penalty = state.teams[teamIndex].vehiclePenalty;
-  if (!penalty) {
-    return 0;
-  }
-
-  const casterTeam = state.teams[penalty.casterTeamIndex];
-  if (casterTeam.teamTurns >= penalty.expiresAtCasterTurn) {
-    state.teams[teamIndex].vehiclePenalty = null;
-    return 0;
-  }
-
-  return penalty.amount;
-};
-
-const getGlobalSaleBonus = (state, teamIndex) => {
-  let bonus = 0;
-
-  state.teams[teamIndex].slots.filter(Boolean).forEach((deal) => {
-    if (deal.employee?.name === "Finance Coordinator") {
-      bonus += 1;
+const removeLowestValueCards = (state, player, count) => {
+  const removed = [];
+  for (let index = 0; index < count; index += 1) {
+    if (!player.hand.length) {
+      break;
     }
-
-    if (deal.employee?.name === "Client Advisor") {
-      bonus += 2;
-    }
-
-    if (deal.employee?.name === "F&I Manager") {
-      bonus += 3;
-    }
-  });
-
-  return bonus;
+    let lowestIndex = 0;
+    player.hand.forEach((card, cardIndex) => {
+      if (getNumericCardValue(card) < getNumericCardValue(player.hand[lowestIndex])) {
+        lowestIndex = cardIndex;
+      }
+    });
+    const [card] = player.hand.splice(lowestIndex, 1);
+    removed.push(card);
+  }
+  discardCards(state, removed);
+  return removed;
 };
 
-const applyComboBonuses = (deal) => {
-  let bonus = 0;
-  const clientName = deal.client?.name;
-  const vehicleNames = getVehiclesForDeal(deal).map((card) => getEffectiveVehicleName(deal, card));
-  const employeeName = deal.employee?.name;
+const salesTeamAmount = (player, passive) =>
+  player.salespeople
+    .filter((card) => card.passive === passive)
+    .reduce((total, card) => total + (card.amount ?? 0), 0);
 
-  if (clientName === "First-Time Buyer" && vehicleNames.some((name) => ["Base Model Sedan", "BMW X1"].includes(name))) {
-    bonus += 2;
-  }
-  if (clientName === "College Graduate" && deal.attachments.some((card) => card.name === "Factory Incentive")) {
-    bonus += 2;
-  }
-  if (clientName === "Family of Five" && vehicleNames.includes("BMW X5")) {
-    bonus += 6;
-  } else if (clientName === "Family of Five" && vehicleNames.includes("BMW X3")) {
-    bonus += 4;
-  }
-  if (clientName === "Empty Nester" && vehicleNames.some((name) => ["MINI Cooper", "BMW M2"].includes(name))) {
-    bonus += 3;
-  }
-  if (clientName === "Lease Return Customer" && vehicleNames.some((name) => name?.startsWith("BMW"))) {
-    bonus += 4;
-  }
-  if (clientName === "Lease Return Customer" && vehicleNames.includes("Certified Pre-Owned")) {
-    bonus += 2;
-  }
-  if (clientName === "BMW Enthusiast" && vehicleNames.includes("BMW M3")) {
-    bonus += 8;
-  } else if (clientName === "BMW Enthusiast" && vehicleNames.includes("BMW M2")) {
-    bonus += 6;
-  } else if (clientName === "BMW Enthusiast" && vehicleNames.includes("BMW 330i")) {
-    bonus += 3;
-  }
-  if (clientName === "MINI Fanatic" && vehicleNames.includes("MINI Cooper")) {
-    bonus += 8;
-  }
-  if (clientName === "Business Owner" && vehicleNames.includes("BMW iX")) {
-    bonus += 6;
-  } else if (clientName === "Business Owner" && vehicleNames.includes("BMW X5")) {
-    bonus += 5;
-  }
-  if (clientName === "Referral Customer" && vehicleNames.length) {
-    bonus += 3;
-  }
-  if (clientName === "Luxury Shopper" && vehicleNames.includes("Unicorn Allocation")) {
-    bonus += 10;
-  }
-  if (clientName === "Dream Customer" && vehicleNames.length) {
-    bonus += 5;
-  }
-  if (clientName === "Corporate Fleet Buyer" && vehicleNames.length === 3) {
-    bonus += 12;
-  }
-  if (employeeName === "Product Genius" && vehicleNames.some((name) => name?.startsWith("BMW"))) {
-    bonus += 2;
-  }
-  if (employeeName === "Used Car Manager" && vehicleNames.includes("High Mileage Trade")) {
-    bonus += 5;
-  }
-  if (employeeName === "New Hire") {
-    bonus += 1;
-  }
+const repTierBonus = (player) => (player.reputation >= 8 ? 2 : player.reputation >= 4 ? 1 : 0);
 
-  return bonus;
-};
+const saleComboBonus = (customer, vehicle) =>
+  (customer.wants ?? []).some((tag) => (vehicle.tags ?? []).includes(tag)) ? 2 : 0;
 
-const computeDealValue = (state, deal) => {
-  let total = 0;
+const computeSaleValue = (player, customer, vehicle) =>
+  (vehicle.profit ?? 0) +
+  (customer.bonus ?? 0) +
+  saleComboBonus(customer, vehicle) +
+  player.carBonus +
+  salesTeamAmount(player, "on-sale-cash") +
+  repTierBonus(player);
 
-  if (deal.client) {
-    total += getCardValue(deal.client);
-  }
-
-  getVehiclesForDeal(deal).forEach((vehicleCard) => {
-    total += Math.max(1, getEffectiveVehicleValue(deal, vehicleCard) - getTeamVehiclePenalty(state, deal.teamIndex));
-  });
-
-  if (deal.employee) {
-    total += getCardValue(deal.employee);
-  }
-
-  total += deal.attachments.reduce((sum, attachment) => sum + getCardValue(attachment), 0);
-  total += applyComboBonuses(deal);
-  total += getGlobalSaleBonus(state, deal.teamIndex);
-
-  return total;
-};
-
-const isDealComplete = (deal) => Boolean(deal?.client && getVehicleCount(deal) > 0 && deal.employee);
-const isDealRushEligible = (deal) => Boolean(deal?.client && getVehicleCount(deal) > 0);
-
-const removeDealIfEmpty = (state, teamIndex, slotIndex) => {
-  const deal = getDeal(state, teamIndex, slotIndex);
-  if (!deal) {
+const gainCash = (state, player, amount, reason) => {
+  if (!amount) {
     return;
   }
-
-  const hasCards = Boolean(deal.client || deal.vehicle || deal.extraVehicles.length || deal.employee || deal.attachments.length);
-  if (!hasCards) {
-    state.teams[teamIndex].slots[slotIndex] = null;
-  }
+  player.cash = Math.max(0, player.cash + amount);
+  pushLog(state, `${player.name} ${amount >= 0 ? "gained" : "lost"} ${Math.abs(amount)} cash. ${reason}`);
+  checkForWinner(state);
 };
 
-const updateDealCompletion = (state, teamIndex, slotIndex) => {
-  const deal = getDeal(state, teamIndex, slotIndex);
-  if (!deal) {
+const gainRep = (state, player, amount, reason) => {
+  if (!amount) {
     return;
   }
-
-  if (isDealComplete(deal)) {
-    if (deal.pendingSinceTeamTurn === null) {
-      deal.pendingSinceTeamTurn = state.teams[teamIndex].teamTurns;
-      pushLog(state, `${TEAM_CONFIG[teamIndex].slotLabels[slotIndex]} is now pending delivery for ${TEAM_CONFIG[teamIndex].name}.`);
-    }
-  } else {
-    deal.pendingSinceTeamTurn = null;
-  }
+  player.reputation = Math.max(0, player.reputation + amount);
+  pushLog(state, `${player.name} ${amount >= 0 ? "gained" : "lost"} ${Math.abs(amount)} reputation. ${reason}`);
 };
 
-const attachCardToDeal = (state, teamIndex, slotIndex, card, ownerPlayerId) => {
-  const deal = ensureDeal(state, teamIndex, slotIndex, ownerPlayerId);
-
-  if (card.type === "Client") {
-    deal.client = card;
-  } else if (card.type === "Vehicle") {
-    if (!deal.vehicle) {
-      deal.vehicle = card;
-    } else if (deal.client?.name === "Corporate Fleet Buyer" && getVehicleCount(deal) < 3) {
-      deal.extraVehicles.push(card);
-    } else {
-      return false;
+const bestCustomerIndex = (customers) => {
+  let best = -1;
+  customers.forEach((customer, index) => {
+    if (best === -1 || (customer.bonus ?? 0) > (customers[best].bonus ?? 0)) {
+      best = index;
     }
-  } else if (card.type === "Employee") {
-    deal.employee = card;
-  } else {
-    deal.attachments.push(card);
-  }
+  });
+  return best;
+};
 
-  updateDealCompletion(state, teamIndex, slotIndex);
-  return true;
+const worstCustomerIndex = (customers) => {
+  let worst = -1;
+  customers.forEach((customer, index) => {
+    if (worst === -1 || (customer.bonus ?? 0) < (customers[worst].bonus ?? 0)) {
+      worst = index;
+    }
+  });
+  return worst;
 };
 
 const checkForWinner = (state) => {
-  const winningTeam = state.teams.find((team) => team.profit >= WIN_TARGET);
-  if (winningTeam) {
+  if (state.winner) {
+    return;
+  }
+  const champion = state.players.find((player) => player.cash >= CASH_TARGET);
+  if (champion) {
     state.status = "finished";
     state.winner = {
-      name: TEAM_CONFIG[state.teams.indexOf(winningTeam)].name,
-      reason: `${TEAM_CONFIG[state.teams.indexOf(winningTeam)].name} crossed ${WIN_TARGET} profit.`
+      playerId: champion.id,
+      name: champion.name,
+      reason: `${champion.name} banked ${champion.cash} cash and owns the market.`
     };
-    return;
-  }
-
-  const activeDeals = state.teams.some((team) => team.slots.some(Boolean));
-  if (!state.deck.length && state.players.every((player) => player.hand.length === 0) && !activeDeals) {
-    const winnerTeamIndex = state.teams[0].profit === state.teams[1].profit
-      ? null
-      : state.teams[0].profit > state.teams[1].profit
-        ? 0
-        : 1;
-
-    state.status = "finished";
-    state.winner = winnerTeamIndex === null
-      ? {
-          name: "Tie game",
-          reason: "The deck ran out, all deals resolved, and both teams finished tied on profit."
-        }
-      : {
-          name: TEAM_CONFIG[winnerTeamIndex].name,
-          reason: `The deck ran dry, all deals resolved, and ${TEAM_CONFIG[winnerTeamIndex].name} finished ahead on profit.`
-        };
   }
 };
 
-const deliverDeal = (state, teamIndex, slotIndex, reason) => {
-  const deal = getDeal(state, teamIndex, slotIndex);
-  if (!deal) {
-    return;
-  }
-
-  const team = state.teams[teamIndex];
-  const profit = computeDealValue(state, deal);
-  const deliveredVehicles = getVehiclesForDeal(deal).map((vehicle) => getEffectiveVehicleName(deal, vehicle)).join(", ");
-
-  team.profit += profit;
-  team.deliveredDeals.push({
-    label: `${deal.client?.name ?? "No Client"} + ${deliveredVehicles || "No Vehicle"}`,
-    profit
-  });
-  team.lastDeliveredSale = profit;
-  team.lastDeliveredClientName = deal.client?.name ?? null;
-  team.deliveredThisTurn = true;
-
-  const keepClient = deal.attachments.some((card) => card.name === "Customer For Life");
-  const owner = getPlayer(state, deal.ownerPlayerId);
-
-  if (keepClient && owner && deal.client) {
-    owner.hand.push(deal.client);
-  } else if (deal.client) {
-    discardCards(state, [deal.client]);
-  }
-
-  discardCards(state, [...getVehiclesForDeal(deal), deal.employee, ...deal.attachments]);
-  state.teams[teamIndex].slots[slotIndex] = null;
-  pushLog(state, `${TEAM_CONFIG[teamIndex].slotLabels[slotIndex]} delivered for ${profit} profit. ${reason}`);
-  checkForWinner(state);
-};
-
-const resolvePendingDeliveries = (state, teamIndex) => {
-  state.teams[teamIndex].slots.forEach((deal, slotIndex) => {
-    if (deal && deal.pendingSinceTeamTurn !== null && state.teams[teamIndex].teamTurns > deal.pendingSinceTeamTurn) {
-      deliverDeal(state, teamIndex, slotIndex, "The deal survived to the next allied turn.");
-    }
-  });
-};
-
-const teamHasGsmShield = (state, teamIndex) =>
-  getActiveTeamEmployeeNames(state, teamIndex).includes("GSM") && !state.teams[teamIndex].sabotageBlockedThisTurn;
-
-const absorbTeamSabotage = (state, teamIndex, cardName) => {
-  if (!teamHasGsmShield(state, teamIndex)) {
-    return false;
-  }
-
-  state.teams[teamIndex].sabotageBlockedThisTurn = true;
-  pushLog(state, `${TEAM_CONFIG[teamIndex].name}'s GSM blocked ${cardName}.`);
-  return true;
-};
-
-const absorbDealProtection = (state, teamIndex, slotIndex, targetKind, cardName) => {
-  const deal = getDeal(state, teamIndex, slotIndex);
-  if (!deal) {
-    return true;
-  }
-  if (teamHasGsmShield(state, teamIndex)) {
-    state.teams[teamIndex].sabotageBlockedThisTurn = true;
-    pushLog(state, `${TEAM_CONFIG[teamIndex].name}'s GSM blocked ${cardName}.`);
-    return true;
-  }
-  if (targetKind === "client" && deal.employee?.name === "Receptionist") {
-    pushLog(state, `Receptionist protected ${deal.client?.name ?? "the client"} from ${cardName}.`);
-    return true;
-  }
-  if (deal.employee?.name === "Superstar Employee" && !deal.superstarShieldUsed) {
-    deal.superstarShieldUsed = true;
-    pushLog(state, `Superstar Employee burned its one-time save against ${cardName}.`);
-    return true;
-  }
-  return false;
-};
-
-const gainTeamProfit = (state, teamIndex, amount, reason) => {
-  state.teams[teamIndex].profit += amount;
-  pushLog(state, `${TEAM_CONFIG[teamIndex].name} ${amount >= 0 ? "gained" : "lost"} ${Math.abs(amount)} profit. ${reason}`);
-  checkForWinner(state);
-};
-
-const hasMiniActive = (state, teamIndex) =>
-  state.teams[teamIndex].slots.some((deal) =>
-    getVehiclesForDeal(deal).some((vehicle) => getEffectiveVehicleName(deal, vehicle) === "MINI Cooper")
+const finishByTurnLimit = (state) => {
+  const ranked = [...state.players].sort(
+    (left, right) => right.cash - left.cash || right.reputation - left.reputation || left.seatIndex - right.seatIndex
   );
-
-const getOpponentDealOptions = (state, teamIndex, filterFn) =>
-  state.teams[opposingTeamIndex(teamIndex)].slots
-    .map((deal, slotIndex) => ({ deal, slotIndex }))
-    .filter(({ deal, slotIndex }) => deal && filterFn(deal, slotIndex));
-
-const getOwnDealOptions = (state, teamIndex, filterFn) =>
-  state.teams[teamIndex].slots
-    .map((deal, slotIndex) => ({ deal, slotIndex }))
-    .filter(({ deal, slotIndex }) => filterFn(deal, slotIndex));
-
-const maybeTriggerServiceAdvisor = (state) => {
-  state.teams.forEach((_, teamIndex) => {
-    if (getActiveTeamEmployeeNames(state, teamIndex).includes("Service Advisor")) {
-      gainTeamProfit(state, teamIndex, 1, "Service Advisor converted the event chaos into value.");
-    }
-  });
+  const leader = ranked[0];
+  state.status = "finished";
+  state.winner = {
+    playerId: leader.id,
+    name: leader.name,
+    reason: `The month closed after ${MAX_TURNS} turns and ${leader.name} finished on top with ${leader.cash} cash.`
+  };
 };
-
-const findManufacturerAudit = (state, dealerPrincipalTeamIndex) => {
-  for (const player of state.players) {
-    if (player.teamIndex === dealerPrincipalTeamIndex) {
-      continue;
-    }
-
-    const auditIndex = player.hand.findIndex((card) => card.name === "Manufacturer Audit");
-    if (auditIndex !== -1) {
-      const [auditCard] = player.hand.splice(auditIndex, 1);
-      discardCards(state, [auditCard]);
-      pushLog(state, `${player.name} fired Manufacturer Audit and canceled Dealer Principal.`);
-      return true;
-    }
-  }
-  return false;
-};
-
-const teamHasActiveReferralCustomer = (state, teamIndex) =>
-  state.teams[teamIndex].slots.some((deal) => deal?.client?.name === "Referral Customer");
 
 const normalizeAction = (action) => stableStringify(action);
 
-const buildCardActions = (state, player, card) => {
-  const ownTeamIndex = player.teamIndex;
-  const enemyTeamIndex = opposingTeamIndex(ownTeamIndex);
+const resolveEffect = (state, player, effect, cardName) => {
+  const rivals = getRivals(state, player);
 
-  if (card.name === "Manufacturer Audit") {
-    return [];
+  switch (effect.kind) {
+    case "gain-cash":
+      gainCash(state, player, effect.amount, `${cardName} paid off.`);
+      return;
+    case "gain-rep":
+      gainRep(state, player, effect.amount, `${cardName} boosted the brand.`);
+      return;
+    case "draw": {
+      const drawn = drawCards(state, player, effect.amount);
+      pushLog(state, `${player.name} drew ${drawn.length} card${drawn.length === 1 ? "" : "s"} from ${cardName}.`);
+      return;
+    }
+    case "self-discard": {
+      const removed = removeLowestValueCards(state, player, effect.amount);
+      if (removed.length) {
+        pushLog(state, `${player.name} discarded ${removed.map((card) => card.name).join(", ")} to ${cardName}.`);
+      }
+      return;
+    }
+    case "extra-plays":
+      state.actionsRemaining += effect.amount;
+      pushLog(state, `${player.name} may play ${effect.amount} additional card${effect.amount === 1 ? "" : "s"} this turn.`);
+      return;
+    case "raise-hand-limit":
+      player.handLimit += effect.amount;
+      pushLog(state, `${player.name}'s hand size limit is now ${player.handLimit}.`);
+      return;
+    case "raise-customer-cap":
+      player.customerCap += effect.amount;
+      pushLog(state, `${player.name}'s showroom now holds ${player.customerCap} customers.`);
+      return;
+    case "car-value-bonus":
+      player.carBonus += effect.amount;
+      pushLog(state, `${player.name}'s cars are now worth ${effect.amount} more when sold.`);
+      return;
+    case "scry": {
+      reshuffleDiscardIntoDeck(state);
+      const looked = state.deck.splice(0, effect.amount);
+      if (!looked.length) {
+        pushLog(state, `${player.name} played ${cardName}, but the deck was empty.`);
+        return;
+      }
+      let keepIndex = 0;
+      looked.forEach((card, index) => {
+        if (getNumericCardValue(card) > getNumericCardValue(looked[keepIndex])) {
+          keepIndex = index;
+        }
+      });
+      const [kept] = looked.splice(keepIndex, 1);
+      player.hand.push(kept);
+      discardCards(state, looked);
+      pushLog(state, `${player.name} used ${cardName} to look at ${looked.length + 1} cards and kept one.`);
+      return;
+    }
+    case "underdog-rep": {
+      const behindEveryRival = rivals.length > 0 && rivals.every((rival) => rival.customers.length > player.customers.length);
+      if (behindEveryRival) {
+        gainRep(state, player, effect.amount, `${cardName} rewarded the underdog.`);
+      }
+      return;
+    }
+    case "cash-per-rival-ahead": {
+      const ahead = rivals.filter((rival) => rival.customers.length > player.customers.length).length;
+      if (ahead > 0) {
+        gainCash(state, player, effect.amount * ahead, `${cardName} paid out for ${ahead} bigger rival${ahead === 1 ? "" : "s"}.`);
+      } else {
+        pushLog(state, `${player.name} played ${cardName}, but no rival has more customers.`);
+      }
+      return;
+    }
+    default:
+      return;
   }
-  if (card.type === "Client") {
-    return TEAM_CONFIG[ownTeamIndex].slotLabels
-      .map((label, slotIndex) => ({ label, slotIndex }))
-      .filter(({ slotIndex }) => !getDeal(state, ownTeamIndex, slotIndex)?.client)
-      .map(({ label, slotIndex }) => ({
-        label: `${getDeal(state, ownTeamIndex, slotIndex) ? "Add to" : "Start"} ${label}`,
-        kind: "attach",
-        slotIndex
-      }));
+};
+
+const resolveSabotageEffect = (state, player, target, effect, cardName) => {
+  switch (effect.kind) {
+    case "lose-rep":
+      gainRep(state, target, -effect.amount, `${player.name}'s ${cardName} hit ${target.name}.`);
+      return;
+    case "lose-cash":
+      gainCash(state, target, -effect.amount, `${player.name}'s ${cardName} hit ${target.name}.`);
+      return;
+    case "rob-hand": {
+      if (!target.hand.length) {
+        return;
+      }
+      let bestIndex = 0;
+      target.hand.forEach((card, index) => {
+        if (getNumericCardValue(card) > getNumericCardValue(target.hand[bestIndex])) {
+          bestIndex = index;
+        }
+      });
+      const [stolen] = target.hand.splice(bestIndex, 1);
+      discardCards(state, [stolen]);
+      pushLog(state, `${player.name}'s ${cardName} forced ${target.name} to discard ${stolen.name}.`);
+      return;
+    }
+    case "lose-best-customer": {
+      const index = bestCustomerIndex(target.customers);
+      if (index === -1) {
+        return;
+      }
+      const [customer] = target.customers.splice(index, 1);
+      discardCards(state, [customer]);
+      pushLog(state, `${customer.name} walked out of ${target.name}'s showroom thanks to ${cardName}.`);
+      return;
+    }
+    case "lose-worst-customer": {
+      const index = worstCustomerIndex(target.customers);
+      if (index === -1) {
+        return;
+      }
+      const [customer] = target.customers.splice(index, 1);
+      discardCards(state, [customer]);
+      pushLog(state, `${customer.name} walked out of ${target.name}'s showroom thanks to ${cardName}.`);
+      return;
+    }
+    default:
+      return;
   }
+};
+
+const resolveStealFromEachRival = (state, player, cardName) => {
+  getRivals(state, player).forEach((rival) => {
+    if (player.customers.length >= player.customerCap) {
+      return;
+    }
+    const index = bestCustomerIndex(rival.customers);
+    if (index === -1) {
+      return;
+    }
+    const [customer] = rival.customers.splice(index, 1);
+    player.customers.push(customer);
+    pushLog(state, `${player.name}'s ${cardName} stole ${customer.name} from ${rival.name}.`);
+  });
+};
+
+const sabotageEffectApplies = (player, target, effect) => {
+  switch (effect.kind) {
+    case "lose-rep":
+      return target.reputation > 0;
+    case "lose-cash":
+      return target.cash > 0;
+    case "rob-hand":
+      return target.hand.length > 0;
+    case "lose-best-customer":
+    case "lose-worst-customer":
+      return target.customers.length > 0;
+    default:
+      return false;
+  }
+};
+
+const buildCardActions = (state, player, card) => {
+  if (card.type === "Customer") {
+    if (player.customers.length >= player.customerCap) {
+      return [];
+    }
+    if ((card.repRequirement ?? 0) > player.reputation) {
+      return [];
+    }
+    return [{ label: "Recruit to showroom", kind: "recruit" }];
+  }
+
   if (card.type === "Vehicle") {
-    return TEAM_CONFIG[ownTeamIndex].slotLabels
-      .map((label, slotIndex) => ({ label, slotIndex }))
-      .filter(({ slotIndex }) => dealCanTakeVehicle(getDeal(state, ownTeamIndex, slotIndex)))
-      .map(({ label, slotIndex }) => ({
-        label: `${getDeal(state, ownTeamIndex, slotIndex) ? "Add to" : "Start"} ${label}`,
-        kind: "attach",
-        slotIndex
+    return [{ label: "Stock on lot", kind: "stock" }];
+  }
+
+  if (card.type === "Salesperson") {
+    if (player.salespeople.length >= SALES_TEAM_CAP) {
+      return [];
+    }
+    return [{ label: "Hire to sales team", kind: "hire" }];
+  }
+
+  if (card.type === "Action") {
+    return [{ label: "Play action", kind: "action" }];
+  }
+
+  if (card.type === "Sabotage") {
+    const effects = card.effects ?? [];
+    if (effects.some((effect) => effect.kind === "steal-customer-each")) {
+      const canSteal =
+        player.customers.length < player.customerCap &&
+        getRivals(state, player).some((rival) => rival.customers.length > 0);
+      return canSteal ? [{ label: "Raid every rival", kind: "sabotage-all" }] : [];
+    }
+    return getRivals(state, player)
+      .filter((rival) => effects.some((effect) => sabotageEffectApplies(player, rival, effect)))
+      .map((rival) => ({
+        label: `Target ${rival.name}`,
+        kind: "sabotage",
+        targetPlayerId: rival.id
       }));
   }
-  if (card.type === "Employee") {
-    if (card.name === "Porter") {
-      return [{ label: "Play utility", kind: "draw-one" }];
-    }
-    if (card.name === "BDC Agent") {
-      return [{ label: "Find client", kind: "search-client" }];
-    }
-    if (card.name === "Sales Manager") {
-      return [{ label: "Grant extra action", kind: "extra-action" }];
-    }
-    return getOwnDealOptions(state, ownTeamIndex, (deal) => !deal?.employee).map(({ slotIndex }) => ({
-      label: `Staff ${TEAM_CONFIG[ownTeamIndex].slotLabels[slotIndex]}`,
-      kind: "attach",
-      slotIndex
-    }));
-  }
-  if (card.type === "Legendary") {
-    if (card.name === "Dealer Principal") {
-      return getOwnDealOptions(state, ownTeamIndex, (deal) => Boolean(deal)).map(({ slotIndex }) => ({
-        label: `Force deliver ${TEAM_CONFIG[ownTeamIndex].slotLabels[slotIndex]}`,
-        kind: "dealer-principal",
-        slotIndex
-      }));
-    }
-    return [];
-  }
-  if (card.name === "Bad Survey") {
-    return [{
-      label: `Hit ${TEAM_CONFIG[enemyTeamIndex].name}`,
-      kind: "team-profit",
-      teamIndex: enemyTeamIndex,
-      amount: -5,
-      isSabotage: true,
-      reason: "Bad Survey cratered profit."
-    }];
-  }
-  if (card.name === "Chargeback") {
-    return state.teams[enemyTeamIndex].lastDeliveredSale
-      ? [{ label: `Charge back ${TEAM_CONFIG[enemyTeamIndex].name}`, kind: "chargeback", teamIndex: enemyTeamIndex }]
-      : [];
-  }
-  if (card.name === "Factory Incentive" || card.name === "Market Adjustment") {
-    return getOwnDealOptions(state, ownTeamIndex, (deal) => {
-      if (!getVehicleCount(deal)) {
-        return false;
-      }
-      if (card.name === "Market Adjustment" && getVehiclesForDeal(deal).some((vehicle) => vehicle.name === "Base Model Sedan")) {
-        return false;
-      }
-      return true;
-    }).map(({ slotIndex }) => ({
-      label: `Boost ${TEAM_CONFIG[ownTeamIndex].slotLabels[slotIndex]}`,
-      kind: "attach",
-      slotIndex
-    }));
-  }
-  if (card.name === "Recall Campaign") {
-    return state.teams[enemyTeamIndex].slots.some((deal) => getVehicleCount(deal) > 0)
-      ? [{ label: `Debuff ${TEAM_CONFIG[enemyTeamIndex].name}`, kind: "recall", teamIndex: enemyTeamIndex }]
-      : [];
-  }
-  if (card.name === "Employee Quits") {
-    return getOpponentDealOptions(state, ownTeamIndex, (deal) => Boolean(deal.employee)).map(({ slotIndex }) => ({
-      label: `Strip ${TEAM_CONFIG[enemyTeamIndex].slotLabels[slotIndex]}`,
-      kind: "remove-employee",
-      teamIndex: enemyTeamIndex,
-      slotIndex
-    }));
-  }
-  if (card.name === "Massive Trade") {
-    return [{ label: "Dig for vehicles", kind: "massive-trade" }];
-  }
-  if (card.name === "Viral Social Post") {
-    const total = hasMiniActive(state, ownTeamIndex) ? 7 : 5;
-    return [{
-      label: `Gain ${total} profit`,
-      kind: "team-profit",
-      teamIndex: ownTeamIndex,
-      amount: total,
-      reason: "Viral Social Post spiked showroom buzz."
-    }];
-  }
-  if (card.name === "Internet Lead Ghosts You") {
-    return getOpponentDealOptions(state, ownTeamIndex, (deal) => Boolean(deal.client)).map(({ slotIndex }) => ({
-      label: `Ghost ${TEAM_CONFIG[enemyTeamIndex].slotLabels[slotIndex]}`,
-      kind: "remove-client",
-      teamIndex: enemyTeamIndex,
-      slotIndex
-    }));
-  }
-  if (card.name === "Google Review Hero") {
-    return getOwnDealOptions(state, ownTeamIndex, (deal) => Boolean(deal?.employee)).map(({ slotIndex }) => ({
-      label: `Attach to ${TEAM_CONFIG[ownTeamIndex].slotLabels[slotIndex]}`,
-      kind: "attach",
-      slotIndex
-    }));
-  }
-  if (card.name === "End-of-Month Rush") {
-    return getOwnDealOptions(state, ownTeamIndex, (deal) => isDealRushEligible(deal)).map(({ slotIndex }) => ({
-      label: `Deliver ${TEAM_CONFIG[ownTeamIndex].slotLabels[slotIndex]}`,
-      kind: "rush-delivery",
-      slotIndex
-    }));
-  }
-  if (card.name === "Customer For Life") {
-    return getOwnDealOptions(state, ownTeamIndex, (deal) => Boolean(deal?.client && deal.client.name !== "Dream Customer")).map(({ slotIndex }) => ({
-      label: `Attach to ${TEAM_CONFIG[ownTeamIndex].slotLabels[slotIndex]}`,
-      kind: "attach",
-      slotIndex
-    }));
-  }
-  if (card.name === "Record Month") {
-    const bonus = state.teams[ownTeamIndex].deliveredThisTurn ? 13 : 10;
-    return [{
-      label: `Gain ${bonus} profit`,
-      kind: "team-profit",
-      teamIndex: ownTeamIndex,
-      amount: bonus,
-      reason: "Record Month added immediate scoreboard pressure."
-    }];
-  }
+
   return [];
 };
+
+const buildSaleActions = (state, player) =>
+  player.customers.flatMap((customer) =>
+    player.vehicles.map((vehicle) => ({
+      cardUid: null,
+      cardName: "Close Sale",
+      cardType: "Sale",
+      cardValue: String(computeSaleValue(player, customer, vehicle)),
+      action: {
+        label: `Sell ${vehicle.name} to ${customer.name} (+${computeSaleValue(player, customer, vehicle)} cash)`,
+        kind: "close-sale",
+        customerUid: customer.uid,
+        vehicleUid: vehicle.uid
+      }
+    }))
+  );
 
 export const createGameState = ({ roomCode, hostPlayerId = null }) => ({
   roomCode,
@@ -617,19 +390,19 @@ export const createGameState = ({ roomCode, hostPlayerId = null }) => ({
   discard: [],
   log: [],
   winner: null,
-  players: [],
-  teams: TEAM_CONFIG.map(() => ({
-    profit: 0,
-    deliveredDeals: [],
-    slots: [null, null, null],
-    teamTurns: 0,
-    extraActionsNextTurn: 0,
-    sabotageBlockedThisTurn: false,
-    lastDeliveredSale: null,
-    lastDeliveredClientName: null,
-    deliveredThisTurn: false,
-    vehiclePenalty: null
-  }))
+  players: []
+});
+
+const freshDealership = () => ({
+  cash: 0,
+  reputation: 0,
+  carBonus: 0,
+  handLimit: BASE_HAND_LIMIT,
+  customerCap: BASE_CUSTOMER_CAP,
+  customers: [],
+  salespeople: [],
+  vehicles: [],
+  salesClosed: 0
 });
 
 export const addPlayerToGame = (state, player) => {
@@ -638,18 +411,19 @@ export const addPlayerToGame = (state, player) => {
     id: player.id,
     name: player.name,
     seatIndex: player.seatIndex,
-    teamIndex: SEAT_CONFIG[player.seatIndex].teamIndex,
+    dealership: SEAT_CONFIG[player.seatIndex].dealership,
     isAi: Boolean(player.isAi),
     personalityId: player.personalityId ?? null,
     ready: Boolean(player.isAi),
     connected: !player.isAi,
     reconnectToken: player.reconnectToken,
-    hand: []
+    hand: [],
+    ...freshDealership()
   });
   if (!next.hostPlayerId) {
     next.hostPlayerId = player.id;
   }
-  pushLog(next, `${player.name} joined ${SEAT_CONFIG[player.seatIndex].name}${player.isAi ? " as an AI player" : ""}.`);
+  pushLog(next, `${player.name} took over ${SEAT_CONFIG[player.seatIndex].dealership}${player.isAi ? " as an AI dealer" : ""}.`);
   return next;
 };
 
@@ -690,23 +464,26 @@ export const beginTurn = (inputState) => {
     return state;
   }
 
-  const player = getCurrentPlayer(state);
-  const team = state.teams[player.teamIndex];
   state.turnNumber += 1;
-  team.teamTurns += 1;
-  team.sabotageBlockedThisTurn = false;
-  team.deliveredThisTurn = false;
-
-  resolvePendingDeliveries(state, player.teamIndex);
-  if (state.winner) {
+  if (state.turnNumber > MAX_TURNS) {
+    finishByTurnLimit(state);
     return state;
   }
 
-  drawCards(state, player, 1);
-  state.actionsRemaining = BASE_ACTIONS_PER_TURN + team.extraActionsNextTurn;
-  team.extraActionsNextTurn = 0;
-  pushLog(state, `${player.name} started a turn, drew 1 card, and has ${state.actionsRemaining} action${state.actionsRemaining === 1 ? "" : "s"}.`);
-  checkForWinner(state);
+  const player = getCurrentPlayer(state);
+
+  const turnCash = salesTeamAmount(player, "turn-cash");
+  if (turnCash) {
+    gainCash(state, player, turnCash, "The service drive kept humming.");
+    if (state.winner) {
+      return state;
+    }
+  }
+
+  const drawCount = CARDS_DRAWN_PER_TURN + salesTeamAmount(player, "turn-draw");
+  drawCards(state, player, drawCount);
+  state.actionsRemaining = BASE_PLAYS_PER_TURN + salesTeamAmount(player, "extra-play");
+  pushLog(state, `${player.name} started a turn, drew ${drawCount} cards, and can play ${state.actionsRemaining} card${state.actionsRemaining === 1 ? "" : "s"}.`);
   return state;
 };
 
@@ -732,25 +509,14 @@ export const startGame = (inputState) => {
 
   state.players.forEach((player) => {
     player.hand = [];
+    Object.assign(player, freshDealership());
   });
-  state.teams = TEAM_CONFIG.map(() => ({
-    profit: 0,
-    deliveredDeals: [],
-    slots: [null, null, null],
-    teamTurns: 0,
-    extraActionsNextTurn: 0,
-    sabotageBlockedThisTurn: false,
-    lastDeliveredSale: null,
-    lastDeliveredClientName: null,
-    deliveredThisTurn: false,
-    vehiclePenalty: null
-  }));
 
   state.players
     .sort((left, right) => left.seatIndex - right.seatIndex)
     .forEach((player) => drawCards(state, player, OPENING_HAND_SIZE));
 
-  pushLog(state, "A fresh Dealership Wars match has started.");
+  pushLog(state, `A fresh Dealership Wars match has started. First dealership to ${CASH_TARGET} cash wins.`);
   return beginTurn(state);
 };
 
@@ -760,7 +526,7 @@ export const buildLegalActions = (state, playerId) => {
     return [];
   }
 
-  return player.hand.flatMap((card) =>
+  const handActions = player.hand.flatMap((card) =>
     buildCardActions(state, player, card).map((action) => ({
       cardUid: card.uid,
       cardName: card.name,
@@ -769,6 +535,8 @@ export const buildLegalActions = (state, playerId) => {
       action
     }))
   );
+
+  return [...handActions, ...buildSaleActions(state, player)];
 };
 
 const consumeAction = (state) => {
@@ -795,7 +563,7 @@ const assertCanAct = (state, playerId) => {
     throw new Error("It is not your turn.");
   }
   if (state.actionsRemaining <= 0) {
-    throw new Error("No actions remaining.");
+    throw new Error("No plays remaining.");
   }
 };
 
@@ -806,11 +574,41 @@ export const applyAction = (inputState, playerId, submitted) => {
   const player = getPlayer(state, playerId);
   const legalActions = buildLegalActions(state, playerId);
   const legal = legalActions.find((candidate) =>
-    candidate.cardUid === submitted.cardUid && normalizeAction(candidate.action) === normalizeAction(submitted.action)
+    (candidate.cardUid ?? null) === (submitted.cardUid ?? null) &&
+    normalizeAction(candidate.action) === normalizeAction(submitted.action)
   );
 
   if (!legal) {
     throw new Error("Illegal action.");
+  }
+
+  const action = legal.action;
+
+  if (action.kind === "close-sale") {
+    const customerIndex = player.customers.findIndex((entry) => entry.uid === action.customerUid);
+    const vehicleIndex = player.vehicles.findIndex((entry) => entry.uid === action.vehicleUid);
+    if (customerIndex === -1 || vehicleIndex === -1) {
+      throw new Error("That sale is no longer available.");
+    }
+    const customer = player.customers[customerIndex];
+    const [vehicle] = player.vehicles.splice(vehicleIndex, 1);
+    const saleValue = computeSaleValue(player, customer, vehicle);
+
+    player.salesClosed += 1;
+    discardCards(state, [vehicle]);
+    if (customer.loyal) {
+      pushLog(state, `${customer.name} stayed loyal to ${player.name}'s showroom.`);
+    } else {
+      player.customers.splice(customerIndex, 1);
+      discardCards(state, [customer]);
+    }
+
+    consumeAction(state);
+    gainCash(state, player, saleValue, `${player.name} sold ${vehicle.name} to ${customer.name}.`);
+    if (!state.winner) {
+      gainRep(state, player, 1, "A happy customer drove off the lot.");
+    }
+    return state;
   }
 
   const card = removeCardFromHand(player, submitted.cardUid);
@@ -818,194 +616,75 @@ export const applyAction = (inputState, playerId, submitted) => {
     throw new Error("Card not found in hand.");
   }
 
-  const action = legal.action;
-
-  if (action.kind === "attach") {
-    const attached = attachCardToDeal(state, player.teamIndex, action.slotIndex, card, player.id);
-    if (!attached) {
-      player.hand.push(card);
-      throw new Error("Card could not be attached to that deal.");
-    }
+  if (action.kind === "recruit") {
+    player.customers.push(card);
     consumeAction(state);
-    pushLog(state, `${player.name} played ${cardLabel(card)} into ${TEAM_CONFIG[player.teamIndex].slotLabels[action.slotIndex]}.`);
-    checkForWinner(state);
+    pushLog(state, `${player.name} recruited ${card.name} into the showroom.`);
+    if (card.rep) {
+      gainRep(state, player, card.rep, `${card.name} likes this dealership.`);
+    }
+    const recruitCash = salesTeamAmount(player, "on-customer-cash");
+    if (recruitCash) {
+      gainCash(state, player, recruitCash, "The sales team worked the new lead.");
+    }
     return state;
   }
 
-  if (action.kind === "team-profit") {
-    if (action.isSabotage && absorbTeamSabotage(state, action.teamIndex, card.name)) {
-      consumeAction(state);
-      discardCards(state, [card]);
-      maybeTriggerServiceAdvisor(state);
-      return state;
-    }
-    if (card.name === "Bad Survey" && teamHasActiveReferralCustomer(state, action.teamIndex)) {
-      consumeAction(state);
-      discardCards(state, [card]);
-      maybeTriggerServiceAdvisor(state);
-      pushLog(state, `${player.name} played Bad Survey, but a Referral Customer deal shrugged it off.`);
-      return state;
-    }
-    gainTeamProfit(state, action.teamIndex, action.amount, action.reason);
+  if (action.kind === "stock") {
+    player.vehicles.push(card);
     consumeAction(state);
-    discardCards(state, [card]);
-    maybeTriggerServiceAdvisor(state);
+    pushLog(state, `${player.name} stocked ${card.name} on the lot.`);
+    const stockRep = salesTeamAmount(player, "on-vehicle-rep");
+    if (stockRep) {
+      gainRep(state, player, stockRep, "The product genius made the walkaround sing.");
+    }
     return state;
   }
 
-  if (action.kind === "massive-trade") {
-    let foundVehicles = 0;
-    const revealed = [];
-    while (state.deck.length && foundVehicles < 3) {
-      const draw = state.deck.shift();
-      if (draw.type === "Vehicle") {
-        player.hand.push(draw);
-        foundVehicles += 1;
-      } else {
-        revealed.push(draw);
+  if (action.kind === "hire") {
+    player.salespeople.push(card);
+    consumeAction(state);
+    pushLog(state, `${player.name} hired ${card.name}. ${card.effect}`);
+    return state;
+  }
+
+  if (action.kind === "action") {
+    consumeAction(state);
+    pushLog(state, `${player.name} played ${cardLabel(card)}.`);
+    (card.effects ?? []).forEach((effect) => {
+      if (!state.winner) {
+        resolveEffect(state, player, effect, card.name);
       }
-    }
-    discardCards(state, revealed);
-    consumeAction(state);
+    });
     discardCards(state, [card]);
-    maybeTriggerServiceAdvisor(state);
-    pushLog(state, `${player.name} played Massive Trade and found ${foundVehicles} vehicle card${foundVehicles === 1 ? "" : "s"}.`);
     return state;
   }
 
-  if (action.kind === "search-client") {
-    const clientIndex = state.deck.findIndex((deckCard) => deckCard.type === "Client");
-    if (clientIndex !== -1) {
-      const [clientCard] = state.deck.splice(clientIndex, 1);
-      player.hand.push(clientCard);
-      pushLog(state, `${player.name} used BDC Agent to pull ${clientCard.name} from the deck.`);
-    } else {
-      pushLog(state, `${player.name} used BDC Agent, but no client was left in the deck.`);
+  if (action.kind === "sabotage") {
+    const target = getPlayer(state, action.targetPlayerId);
+    if (!target) {
+      player.hand.push(card);
+      throw new Error("Target player not found.");
     }
     consumeAction(state);
+    pushLog(state, `${player.name} played ${cardLabel(card)} against ${target.name}.`);
+    (card.effects ?? []).forEach((effect) => {
+      resolveSabotageEffect(state, player, target, effect, card.name);
+    });
     discardCards(state, [card]);
     return state;
   }
 
-  if (action.kind === "draw-one") {
-    drawCards(state, player, 1);
+  if (action.kind === "sabotage-all") {
     consumeAction(state);
-    discardCards(state, [card]);
-    pushLog(state, `${player.name} played Porter and drew a replacement card.`);
-    return state;
-  }
-
-  if (action.kind === "extra-action") {
-    consumeAction(state);
-    state.actionsRemaining += 1;
-    discardCards(state, [card]);
-    pushLog(state, `${player.name} played Sales Manager and earned an immediate extra action.`);
-    return state;
-  }
-
-  if (action.kind === "dealer-principal") {
-    if (findManufacturerAudit(state, player.teamIndex)) {
-      consumeAction(state);
-      discardCards(state, [card]);
-      return state;
-    }
-    deliverDeal(state, player.teamIndex, action.slotIndex, "Dealer Principal forced the deal through instantly.");
-    consumeAction(state);
+    pushLog(state, `${player.name} played ${cardLabel(card)}.`);
+    resolveStealFromEachRival(state, player, card.name);
     discardCards(state, [card]);
     return state;
   }
 
-  if (action.kind === "rush-delivery") {
-    deliverDeal(state, player.teamIndex, action.slotIndex, "End-of-Month Rush pushed the deal over the line.");
-    consumeAction(state);
-    discardCards(state, [card]);
-    maybeTriggerServiceAdvisor(state);
-    return state;
-  }
-
-  if (action.kind === "recall") {
-    if (absorbTeamSabotage(state, action.teamIndex, card.name)) {
-      consumeAction(state);
-      discardCards(state, [card]);
-      maybeTriggerServiceAdvisor(state);
-      return state;
-    }
-    state.teams[action.teamIndex].vehiclePenalty = {
-      amount: 2,
-      casterTeamIndex: player.teamIndex,
-      expiresAtCasterTurn: state.teams[player.teamIndex].teamTurns + 1
-    };
-    consumeAction(state);
-    discardCards(state, [card]);
-    maybeTriggerServiceAdvisor(state);
-    pushLog(state, `${player.name} launched Recall Campaign against ${TEAM_CONFIG[action.teamIndex].name}.`);
-    return state;
-  }
-
-  if (action.kind === "chargeback") {
-    if (absorbTeamSabotage(state, action.teamIndex, card.name)) {
-      consumeAction(state);
-      discardCards(state, [card]);
-      maybeTriggerServiceAdvisor(state);
-      return state;
-    }
-    const targetTeam = state.teams[action.teamIndex];
-    const previous = targetTeam.lastDeliveredSale ?? 0;
-    const reduced = Math.max(5, Math.floor(previous / 2));
-    const delta = reduced - previous;
-    gainTeamProfit(state, action.teamIndex, delta, "Chargeback cut down the most recent delivered deal.");
-    targetTeam.lastDeliveredSale = reduced;
-    consumeAction(state);
-    discardCards(state, [card]);
-    maybeTriggerServiceAdvisor(state);
-    return state;
-  }
-
-  if (action.kind === "remove-client") {
-    if (absorbDealProtection(state, action.teamIndex, action.slotIndex, "client", card.name)) {
-      consumeAction(state);
-      discardCards(state, [card]);
-      maybeTriggerServiceAdvisor(state);
-      return state;
-    }
-    const deal = getDeal(state, action.teamIndex, action.slotIndex);
-    if (deal?.client) {
-      discardCards(state, [deal.client]);
-      deal.client = null;
-      updateDealCompletion(state, action.teamIndex, action.slotIndex);
-      removeDealIfEmpty(state, action.teamIndex, action.slotIndex);
-      pushLog(state, `${player.name} used Internet Lead Ghosts You on ${TEAM_CONFIG[action.teamIndex].slotLabels[action.slotIndex]}.`);
-    }
-    consumeAction(state);
-    discardCards(state, [card]);
-    maybeTriggerServiceAdvisor(state);
-    return state;
-  }
-
-  if (action.kind === "remove-employee") {
-    if (absorbDealProtection(state, action.teamIndex, action.slotIndex, "employee", card.name)) {
-      consumeAction(state);
-      discardCards(state, [card]);
-      maybeTriggerServiceAdvisor(state);
-      return state;
-    }
-    const deal = getDeal(state, action.teamIndex, action.slotIndex);
-    if (deal?.employee) {
-      discardCards(state, [deal.employee]);
-      deal.employee = null;
-      updateDealCompletion(state, action.teamIndex, action.slotIndex);
-      removeDealIfEmpty(state, action.teamIndex, action.slotIndex);
-      pushLog(state, `${player.name} forced an Employee Quits on ${TEAM_CONFIG[action.teamIndex].slotLabels[action.slotIndex]}.`);
-    }
-    consumeAction(state);
-    discardCards(state, [card]);
-    maybeTriggerServiceAdvisor(state);
-    return state;
-  }
-
-  consumeAction(state);
-  discardCards(state, [card]);
-  return state;
+  player.hand.push(card);
+  throw new Error("Unknown action kind.");
 };
 
 export const endTurn = (inputState, playerId) => {
@@ -1020,8 +699,15 @@ export const endTurn = (inputState, playerId) => {
     throw new Error("Only the active player can end the turn.");
   }
 
+  const player = getPlayer(state, playerId);
+  const overflow = player.hand.length - player.handLimit;
+  if (overflow > 0) {
+    const removed = removeLowestValueCards(state, player, overflow);
+    pushLog(state, `${player.name} discarded ${removed.length} card${removed.length === 1 ? "" : "s"} down to the hand limit.`);
+  }
+
   state.currentSeatIndex = (state.currentSeatIndex + 1) % SEAT_CONFIG.length;
-  state.currentPlayerId = state.players.find((player) => player.seatIndex === state.currentSeatIndex)?.id ?? null;
+  state.currentPlayerId = state.players.find((entry) => entry.seatIndex === state.currentSeatIndex)?.id ?? null;
   return beginTurn(state);
 };
 
@@ -1029,3 +715,4 @@ export const getPlayerView = (state, playerId) => serializePrivateView(state, pl
 export const getPublicState = (state) => serializePublicState(state);
 
 export const isCardSabotage = (cardName) => sabotageNames.has(cardName);
+export { computeSaleValue };

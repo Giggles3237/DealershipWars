@@ -12,8 +12,8 @@ const width = 744;
 const height = 1038;
 
 const themes = {
-  Client: {
-    label: "Client",
+  Customer: {
+    label: "Customer",
     primary: "#d66a3d",
     secondary: "#ffd6a6",
     dark: "#5f2718",
@@ -26,26 +26,26 @@ const themes = {
     dark: "#1d3554",
     icon: "car"
   },
-  Employee: {
-    label: "Employee",
+  Salesperson: {
+    label: "Salesperson",
     primary: "#2b8c67",
     secondary: "#b9efd8",
     dark: "#174833",
     icon: "badge"
   },
-  Event: {
-    label: "Event",
+  Action: {
+    label: "Action",
     primary: "#8d4aa8",
     secondary: "#ead1ff",
     dark: "#452054",
     icon: "burst"
   },
-  Legendary: {
-    label: "Legendary",
-    primary: "#bc8a1f",
-    secondary: "#ffe69a",
-    dark: "#5a3b0c",
-    icon: "crown"
+  Sabotage: {
+    label: "Sabotage",
+    primary: "#b3342e",
+    secondary: "#ffc4bd",
+    dark: "#5c1310",
+    icon: "burst"
   }
 };
 
@@ -196,7 +196,7 @@ const textLines = (lines, startY, lineHeight, fontSize, weight = 700, color = "#
     .join("\n");
 
 const renderCard = (card) => {
-  const theme = themes[card.type] ?? themes.Event;
+  const theme = themes[card.type] ?? themes.Action;
   const nameLines = wrapText(card.name, 18, 2);
   const effectLines = wrapText(card.effect, 44, 4);
   const notesLines = wrapText(card.notes, 48, 2);
@@ -237,8 +237,8 @@ const renderCard = (card) => {
     ${iconFor(theme, card)}
   </g>
   <rect x="58" y="55" width="628" height="88" rx="22" fill="#fffaf0" stroke="${theme.dark}" stroke-width="6"/>
-  <rect x="72" y="68" width="150" height="62" rx="16" fill="${theme.primary}"/>
-  <text x="147" y="108" text-anchor="middle" font-family="Trebuchet MS, Aptos, sans-serif" font-size="25" font-weight="900" fill="#fffaf0" letter-spacing="1">${escapeXml(theme.label.toUpperCase())}</text>
+  <rect x="72" y="68" width="${Math.max(150, theme.label.length * 17 + 34)}" height="62" rx="16" fill="${theme.primary}"/>
+  <text x="${72 + Math.max(150, theme.label.length * 17 + 34) / 2}" y="108" text-anchor="middle" font-family="Trebuchet MS, Aptos, sans-serif" font-size="25" font-weight="900" fill="#fffaf0" letter-spacing="1">${escapeXml(theme.label.toUpperCase())}</text>
   <text x="650" y="109" text-anchor="end" font-family="Georgia, serif" font-size="42" font-weight="900" fill="${theme.dark}">${escapeXml(card.value)}</text>
   ${textLines(nameLines, 690, 50, nameLines.length > 1 ? 43 : 50, 900, theme.dark)}
   <rect x="86" y="${plateY}" width="572" height="156" rx="24" fill="#fffaf0" stroke="${theme.dark}" stroke-opacity="0.28" stroke-width="4"/>

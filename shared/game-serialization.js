@@ -1,4 +1,4 @@
-import { getAiPersonality, SEAT_CONFIG, TEAM_CONFIG } from "./constants.js";
+import { getAiPersonality, SEAT_CONFIG } from "./constants.js";
 
 const sortObject = (value) => {
   if (Array.isArray(value)) {
@@ -41,8 +41,8 @@ export const serializePublicState = (state) => ({
       seatIndex: seat.seatIndex,
       seatKey: seat.key,
       seatName: seat.name,
+      dealership: seat.dealership,
       title: personality?.title ?? seat.title,
-      teamIndex: seat.teamIndex,
       occupied: Boolean(player),
       playerId: player?.id ?? null,
       playerName: player?.name ?? null,
@@ -52,35 +52,18 @@ export const serializePublicState = (state) => ({
       personalityTagline: personality?.tagline ?? null,
       connected: player?.connected ?? false,
       ready: player?.ready ?? false,
-      handCount: player?.hand.length ?? 0
+      handCount: player?.hand.length ?? 0,
+      cash: player?.cash ?? 0,
+      reputation: player?.reputation ?? 0,
+      carBonus: player?.carBonus ?? 0,
+      handLimit: player?.handLimit ?? 0,
+      customerCap: player?.customerCap ?? 0,
+      salesClosed: player?.salesClosed ?? 0,
+      customers: player ? [...player.customers] : [],
+      salespeople: player ? [...player.salespeople] : [],
+      vehicles: player ? [...player.vehicles] : []
     };
-  }),
-  teams: TEAM_CONFIG.map((team, teamIndex) => ({
-    teamIndex,
-    name: team.name,
-    label: team.label,
-    profit: state.teams[teamIndex].profit,
-    deliveredDeals: [...state.teams[teamIndex].deliveredDeals],
-    slotLabels: [...team.slotLabels],
-    slots: state.teams[teamIndex].slots.map((deal) => {
-      if (!deal) {
-        return null;
-      }
-
-      return {
-        teamIndex: deal.teamIndex,
-        slotIndex: deal.slotIndex,
-        slotLabel: deal.slotLabel,
-        ownerPlayerId: deal.ownerPlayerId,
-        pendingSinceTeamTurn: deal.pendingSinceTeamTurn,
-        client: deal.client,
-        vehicle: deal.vehicle,
-        extraVehicles: [...deal.extraVehicles],
-        employee: deal.employee,
-        attachments: [...deal.attachments]
-      };
-    })
-  }))
+  })
 });
 
 export const serializePrivateView = (state, playerId, legalActions = []) => {
@@ -94,7 +77,7 @@ export const serializePrivateView = (state, playerId, legalActions = []) => {
           playerId: player.id,
           seatIndex: player.seatIndex,
           seatKey: SEAT_CONFIG[player.seatIndex].key,
-          teamIndex: player.teamIndex,
+          dealership: player.dealership,
           name: player.name,
           isAi: Boolean(player.isAi),
           personalityId: player.personalityId ?? null,

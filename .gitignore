@@ -2,3 +2,15 @@ node_modules
 dist
 
 scripts/shots
+
+# Local editor state
+.vs/
+.claude/
+
+# Local server logs
+*.log
+
+# Generated local previews and reference images
+preview*.png
+54CardDeck.png
+DW-Sample Image.png

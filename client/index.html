@@ -12,10 +12,10 @@
     <main class="app-shell">
       <section class="hero-card">
         <div>
-          <p class="eyebrow">Authoritative Multiplayer Build</p>
+          <p class="eyebrow">Every Dealer For Themselves</p>
           <h1>Dealership Wars</h1>
           <p class="hero-copy">
-            Four players, fixed seats, server-owned turns, hidden hands, and live room updates over WebSockets.
+            Four rival dealerships. Recruit customers, stock the lot, hire closers, sabotage the competition, and race to 30 cash.
           </p>
         </div>
         <div class="hero-meta">
@@ -35,6 +35,7 @@
       </section>
 
       <section id="message-banner" class="message-banner" hidden></section>
+      <div id="animation-layer" class="animation-layer" aria-live="polite" aria-atomic="true"></div>
 
       <section id="landing-screen" class="panel">
         <div class="panel-header">
@@ -52,18 +53,18 @@
               <input id="create-name" name="name" type="text" maxlength="24" placeholder="Player 1" />
             </label>
             <label>
-              <span>Seat</span>
+              <span>Dealership</span>
               <select id="create-seat" name="seat">
-                <option value="0">Player 1 / Team A</option>
-                <option value="1">Player 2 / Team B</option>
-                <option value="2">Player 3 / Team A</option>
-                <option value="3">Player 4 / Team B</option>
+                <option value="0">North Point Motors</option>
+                <option value="1">Southside Auto</option>
+                <option value="2">East End Imports</option>
+                <option value="3">West Gate Motors</option>
               </select>
             </label>
             <div class="ai-setup">
               <div>
-                <p class="eyebrow">Seat Setup</p>
-                <p class="setup-copy">Mark seats as human to leave them open, or AI to fill them with a dealership personality.</p>
+                <p class="eyebrow">Rival Setup</p>
+                <p class="setup-copy">Mark dealerships as human to leave them open, or AI to fill them with a rival dealer personality.</p>
               </div>
               <div id="create-ai-setup" class="ai-setup-grid"></div>
             </div>
@@ -81,13 +82,13 @@
               <input id="join-name" name="name" type="text" maxlength="24" placeholder="Player name" />
             </label>
             <label>
-              <span>Seat</span>
+              <span>Dealership</span>
               <select id="join-seat" name="seat">
-                <option value="">First open seat</option>
-                <option value="0">Player 1 / Team A</option>
-                <option value="1">Player 2 / Team B</option>
-                <option value="2">Player 3 / Team A</option>
-                <option value="3">Player 4 / Team B</option>
+                <option value="">First open dealership</option>
+                <option value="0">North Point Motors</option>
+                <option value="1">Southside Auto</option>
+                <option value="2">East End Imports</option>
+                <option value="3">West Gate Motors</option>
               </select>
             </label>
             <button class="primary-button" type="submit">Join Room</button>
@@ -100,7 +101,7 @@
         <div class="panel-header">
           <div>
             <p class="eyebrow">Lobby</p>
-            <h2>Seat check and ready flow</h2>
+            <h2>Dealership check and ready flow</h2>
           </div>
           <div class="action-row">
             <button id="ready-button" class="primary-button" type="button">Ready Up</button>
@@ -110,7 +111,7 @@
 
         <div id="seat-grid" class="seat-grid"></div>
         <div class="lobby-note">
-          The game auto-starts once all four seats are filled and marked ready. The host can also trigger start once those conditions are met.
+          The game auto-starts once all four dealerships are filled and marked ready. The host can also trigger start once those conditions are met.
         </div>
       </section>
 
@@ -126,16 +127,16 @@
           </div>
         </section>
 
-        <section class="board-grid">
-          <div class="panel team-panel">
-            <div class="team-heading">
-              <p class="eyebrow">Team A</p>
-              <h2>North Showroom</h2>
-              <strong id="team-a-profit">0 profit</strong>
-            </div>
-            <div id="team-a-players" class="player-strip"></div>
-            <div id="team-a-slots" class="deal-slots"></div>
+        <section id="sale-bar" class="panel sale-bar" hidden>
+          <div class="section-line">
+            <p class="eyebrow">Showroom Floor</p>
+            <h3>Close a sale</h3>
           </div>
+          <div id="sale-actions" class="sale-actions"></div>
+        </section>
+
+        <section class="board-grid">
+          <div id="dealer-grid" class="dealer-grid"></div>
 
           <div class="panel center-panel">
             <div class="stats-grid">
@@ -148,13 +149,13 @@
                 <strong id="discard-count">0</strong>
               </div>
               <div class="stat-card">
-                <span>Actions</span>
+                <span>Plays</span>
                 <strong id="actions-count">0</strong>
               </div>
             </div>
             <div class="winner-card">
               <h3 id="winner-title">No winner yet</h3>
-              <p id="winner-copy" class="muted-text">Complete deals, protect them through the next allied turn, and race to 100 profit.</p>
+              <p id="winner-copy" class="muted-text">Recruit customers, stock cars, close sales, and race to 30 cash.</p>
             </div>
             <div class="log-card">
               <div class="section-line">
@@ -163,16 +164,6 @@
               </div>
               <ol id="log-list" class="log-list"></ol>
             </div>
-          </div>
-
-          <div class="panel team-panel">
-            <div class="team-heading">
-              <p class="eyebrow">Team B</p>
-              <h2>South Showroom</h2>
-              <strong id="team-b-profit">0 profit</strong>
-            </div>
-            <div id="team-b-players" class="player-strip"></div>
-            <div id="team-b-slots" class="deal-slots"></div>
           </div>
         </section>
 
@@ -194,7 +185,7 @@
             </div>
             <label class="search-field">
               <span>Search</span>
-              <input id="search-input" type="search" placeholder="BMW, sabotage, employee..." />
+              <input id="search-input" type="search" placeholder="BMW, sabotage, salesperson..." />
             </label>
           </div>
           <div id="library-grid" class="library-grid"></div>

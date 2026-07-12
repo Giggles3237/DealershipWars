@@ -1,10 +1,8 @@
 import cards from "../cards.json" with { type: "json" };
 
-const numericValue = (value) => (value === "Auto-Win" ? 999 : Number(value));
-
 export const baseCards = cards;
 
-export const getNumericCardValue = (card) => numericValue(card.value);
+export const getNumericCardValue = (card) => Number(card.value) || 0;
 
 export const cloneDeck = (random = Math.random) => {
   let nextUid = 1;
@@ -18,5 +16,14 @@ export const cloneDeck = (random = Math.random) => {
     [deck[index], deck[swapIndex]] = [deck[swapIndex], deck[index]];
   }
 
+  return deck;
+};
+
+export const shuffleCards = (cards, random = Math.random) => {
+  const deck = [...cards];
+  for (let index = deck.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [deck[index], deck[swapIndex]] = [deck[swapIndex], deck[index]];
+  }
   return deck;
 };
