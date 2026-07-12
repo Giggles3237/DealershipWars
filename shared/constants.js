@@ -5,6 +5,8 @@ export const BASE_PLAYS_PER_TURN = 2;
 export const BASE_HAND_LIMIT = 7;
 export const BASE_CUSTOMER_CAP = 2;
 export const SALES_TEAM_CAP = 2;
+export const VEHICLE_MARKET_SIZE = 4;
+export const DEFAULT_CUSTOMER_PATIENCE = 3;
 export const MAX_TURNS = 160;
 export const MAX_LOG = 18;
 

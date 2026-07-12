@@ -24,6 +24,7 @@ const turnMeta = document.querySelector("#turn-meta");
 const saleBar = document.querySelector("#sale-bar");
 const saleActions = document.querySelector("#sale-actions");
 const dealerGrid = document.querySelector("#dealer-grid");
+const vehicleMarket = document.querySelector("#vehicle-market");
 const deckCount = document.querySelector("#deck-count");
 const discardCount = document.querySelector("#discard-count");
 const actionsCount = document.querySelector("#actions-count");
@@ -673,6 +674,49 @@ const renderSaleBar = () => {
   });
 };
 
+const renderVehicleMarket = () => {
+  const state = view.publicState;
+  const self = view.self;
+  const currentIsSelf = state.currentPlayerId === self?.playerId;
+  const marketActions = (view.legalActions ?? []).filter((entry) => entry.action.kind === "acquire-market-vehicle");
+
+  vehicleMarket.innerHTML = "";
+  (state.vehicleMarket ?? []).forEach((vehicle) => {
+    const action = marketActions.find((entry) => entry.action.vehicleUid === vehicle.uid);
+    const node = document.createElement("article");
+    node.className = "market-vehicle";
+    node.append(renderCardGraphic(vehicle, "card-graphic market-card-graphic"));
+
+    const detail = document.createElement("div");
+    detail.className = "market-vehicle-detail";
+    detail.append(
+      createTextNode("strong", "", vehicle.name),
+      createTextNode("span", "", `${vehicle.profit} cash${vehicle.tags?.length ? ` - ${vehicle.tags.join(", ")}` : ""}`)
+    );
+    node.append(detail);
+
+    if (currentIsSelf && action && !state.winner) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "action-button";
+      button.textContent = "Acquire";
+      button.addEventListener("click", () => {
+        send("play_card", {
+          cardUid: action.cardUid,
+          action: action.action
+        });
+      });
+      node.append(button);
+    }
+
+    vehicleMarket.append(node);
+  });
+
+  if (!state.vehicleMarket?.length) {
+    vehicleMarket.innerHTML = '<div class="empty-state">No vehicles are available in the market.</div>';
+  }
+};
+
 const renderGame = () => {
   const state = view.publicState;
   const self = view.self;
@@ -706,6 +750,7 @@ const renderGame = () => {
 
   handTitle.textContent = self ? `${self.name} hand` : "Your cards";
   renderSaleBar();
+  renderVehicleMarket();
   renderHand();
   renderLibrary();
 

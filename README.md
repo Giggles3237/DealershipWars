@@ -5,8 +5,10 @@ A digital version of the original Dealership Wars card game: four rival dealersh
 ## How It Plays
 
 - Each player runs their own dealership with **Cash** (the score), **Reputation**, a **Showroom** of customers (capped, expandable), a **Sales Team** of up to 2 salespeople, and a **Lot** of vehicles.
+- Vehicles also appear in a shared **Vehicle Market**, so dealers compete over the same public inventory instead of only drawing from private hands.
 - On your turn you draw 2 cards and play up to 2 cards (cards and salespeople can grant extra plays).
-- **Close a sale** by pairing a showroom Customer with a Lot vehicle: cash = vehicle profit + customer bonus + combo (+2 if the customer wants that kind of car) + permanent car-value upgrades + sales team bonuses + a reputation tier bonus (+1 at 4 rep, +2 at 8 rep). Every sale also earns 1 Reputation.
+- **Close a sale** by pairing a showroom Customer with a Lot vehicle: cash = vehicle profit + customer bonus + combo (+2 if the customer wants that kind of car) + permanent car-value upgrades + sales team bonuses + a reputation tier bonus (+1 at 4 rep, +2 at 8 rep). Standard sales gain Reputation, discount deals earn less cash but more Reputation, and markup deals earn extra cash at a Reputation cost.
+- Customers now have patience. If they sit in your showroom too long, they leave.
 - High-end customers (VIP Client, Corporate Fleet Buyer, Dream Customer) require Reputation to recruit.
 - **Sabotage** cards hit rivals directly: bad surveys, chargebacks, hand spying, customer poaching, and Market Domination steals the best customer from every rival.
 - First dealership to **30 cash** wins.

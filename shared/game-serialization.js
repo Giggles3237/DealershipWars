@@ -31,6 +31,7 @@ export const serializePublicState = (state) => ({
   currentPlayerId: state.currentPlayerId,
   actionsRemaining: state.actionsRemaining,
   deckCount: state.deck.length,
+  vehicleMarket: [...(state.vehicleMarket ?? [])],
   discardTop: state.discard[0] ?? null,
   discardCount: state.discard.length,
   log: [...state.log],

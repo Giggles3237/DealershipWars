@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { baseCards } from "../shared/cards.js";
-import { CASH_TARGET } from "../shared/constants.js";
+import { CASH_TARGET, VEHICLE_MARKET_SIZE } from "../shared/constants.js";
 import {
   addPlayerToGame,
   applyAction,
@@ -65,6 +65,7 @@ test("room creation, join flow, ready flow, and auto start produce a four-player
   assert.equal(room.state.currentPlayerId, host.playerId);
   assert.equal(room.state.players.find((player) => player.id === host.playerId).hand.length, 7);
   assert.equal(room.state.players.find((player) => player.id === p2.playerId).hand.length, 5);
+  assert.equal(room.state.vehicleMarket.length, VEHICLE_MARKET_SIZE);
 });
 
 test("recruiting a customer and stocking a vehicle fills the dealership tableau", () => {
@@ -77,6 +78,7 @@ test("recruiting a customer and stocking a vehicle fills the dealership tableau"
 
   assert.equal(alice.customers.length, 1);
   assert.equal(alice.customers[0].name, "First-Time Buyer");
+  assert.equal(alice.customers[0].patienceRemaining, 3);
   assert.equal(alice.reputation, 1);
   assert.equal(next.actionsRemaining, 1);
 
@@ -95,6 +97,21 @@ test("recruiting a customer and stocking a vehicle fills the dealership tableau"
   }, /not your turn/i);
 });
 
+test("players acquire vehicles from a shared market", () => {
+  const state = buildFixtureState();
+  state.vehicleMarket = [pickCard("BMW X5", "market1")];
+
+  const acquire = buildLegalActions(state, "p1").find((entry) => entry.action.kind === "acquire-market-vehicle");
+  assert.ok(acquire, "expected a market acquisition action");
+
+  const next = applyAction(state, "p1", { cardUid: acquire.cardUid, action: acquire.action });
+  const alice = next.players.find((entry) => entry.id === "p1");
+
+  assert.equal(alice.vehicles.at(-1).name, "BMW X5");
+  assert.equal(next.vehicleMarket.some((vehicle) => vehicle.uid === "market1"), false);
+  assert.equal(next.actionsRemaining, 1);
+});
+
 test("closing a sale pays vehicle profit plus customer bonus plus combo", () => {
   const state = buildFixtureState();
   const player = state.players.find((entry) => entry.id === "p1");
@@ -102,7 +119,9 @@ test("closing a sale pays vehicle profit plus customer bonus plus combo", () => 
   player.vehicles = [pickCard("Base Model Sedan", "veh1")];
   player.hand = [];
 
-  const sale = buildLegalActions(state, "p1").find((entry) => entry.action.kind === "close-sale");
+  const sale = buildLegalActions(state, "p1").find(
+    (entry) => entry.action.kind === "close-sale" && entry.action.saleMode === "standard"
+  );
   assert.ok(sale, "expected a close-sale action");
 
   const next = applyAction(state, "p1", { cardUid: null, action: sale.action });
@@ -113,6 +132,57 @@ test("closing a sale pays vehicle profit plus customer bonus plus combo", () => 
   assert.equal(alice.reputation, 1);
   assert.equal(alice.vehicles.length, 0);
   assert.equal(alice.customers.length, 0);
+});
+
+test("discount and markup sales trade cash against reputation", () => {
+  const discountState = buildFixtureState();
+  let player = discountState.players.find((entry) => entry.id === "p1");
+  player.customers = [pickCard("First-Time Buyer", "cust1")];
+  player.vehicles = [pickCard("Base Model Sedan", "veh1")];
+  player.hand = [];
+
+  const discount = buildLegalActions(discountState, "p1").find(
+    (entry) => entry.action.kind === "close-sale" && entry.action.saleMode === "discount"
+  );
+  const afterDiscount = applyAction(discountState, "p1", { cardUid: null, action: discount.action });
+  player = afterDiscount.players.find((entry) => entry.id === "p1");
+  assert.equal(player.cash, 4);
+  assert.equal(player.reputation, 2);
+
+  const markupState = buildFixtureState();
+  player = markupState.players.find((entry) => entry.id === "p1");
+  player.reputation = 2;
+  player.customers = [pickCard("First-Time Buyer", "cust1")];
+  player.vehicles = [pickCard("Base Model Sedan", "veh1")];
+  player.hand = [];
+
+  const markup = buildLegalActions(markupState, "p1").find(
+    (entry) => entry.action.kind === "close-sale" && entry.action.saleMode === "markup"
+  );
+  const afterMarkup = applyAction(markupState, "p1", { cardUid: null, action: markup.action });
+  player = afterMarkup.players.find((entry) => entry.id === "p1");
+  assert.equal(player.cash, 9);
+  assert.equal(player.reputation, 1);
+});
+
+test("waiting customers leave after their patience runs out", () => {
+  let state = buildFixtureState();
+  const player = state.players.find((entry) => entry.id === "p1");
+  player.customers = [{ ...pickCard("First-Time Buyer", "cust1"), patienceRemaining: 1 }];
+  player.hand = [];
+  state.deck = baseCards
+    .filter((card) => card.type === "Action")
+    .slice(0, 10)
+    .map((card, index) => ({ ...card, uid: `deck${index}` }));
+
+  state = endTurn(state, "p1");
+  state = endTurn(state, "p2");
+  state = endTurn(state, "p3");
+  state = endTurn(state, "p4");
+
+  assert.equal(state.currentPlayerId, "p1");
+  assert.equal(state.players.find((entry) => entry.id === "p1").customers.length, 0);
+  assert.equal(state.discard.some((card) => card.uid === "cust1"), true);
 });
 
 test("sabotage targets a rival and reputation cannot go below zero", () => {

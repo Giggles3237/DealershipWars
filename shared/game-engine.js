@@ -4,11 +4,13 @@ import {
   BASE_PLAYS_PER_TURN,
   CARDS_DRAWN_PER_TURN,
   CASH_TARGET,
+  DEFAULT_CUSTOMER_PATIENCE,
   MAX_LOG,
   MAX_TURNS,
   OPENING_HAND_SIZE,
   SALES_TEAM_CAP,
-  SEAT_CONFIG
+  SEAT_CONFIG,
+  VEHICLE_MARKET_SIZE
 } from "./constants.js";
 import { baseCards, cloneDeck, getNumericCardValue, shuffleCards } from "./cards.js";
 import { serializePrivateView, serializePublicState, stableStringify } from "./game-serialization.js";
@@ -82,13 +84,87 @@ const repTierBonus = (player) => (player.reputation >= 8 ? 2 : player.reputation
 const saleComboBonus = (customer, vehicle) =>
   (customer.wants ?? []).some((tag) => (vehicle.tags ?? []).includes(tag)) ? 2 : 0;
 
-const computeSaleValue = (player, customer, vehicle) =>
+const baseSaleValue = (player, customer, vehicle) =>
   (vehicle.profit ?? 0) +
   (customer.bonus ?? 0) +
   saleComboBonus(customer, vehicle) +
   player.carBonus +
   salesTeamAmount(player, "on-sale-cash") +
   repTierBonus(player);
+
+const computeSaleValue = (player, customer, vehicle, mode = "standard") => {
+  const base = baseSaleValue(player, customer, vehicle);
+  if (mode === "discount") {
+    return Math.max(1, base - 2);
+  }
+  if (mode === "markup") {
+    return base + 3;
+  }
+  return base;
+};
+
+const saleRepDelta = (mode) => {
+  if (mode === "discount") {
+    return 2;
+  }
+  if (mode === "markup") {
+    return -1;
+  }
+  return 1;
+};
+
+const saleModeLabel = (mode) => {
+  if (mode === "discount") {
+    return "Discount";
+  }
+  if (mode === "markup") {
+    return "Push markup";
+  }
+  return "Sell";
+};
+
+const prepareCustomer = (card) => ({
+  ...card,
+  patienceRemaining: card.patience ?? DEFAULT_CUSTOMER_PATIENCE
+});
+
+const refillVehicleMarket = (state) => {
+  state.vehicleMarket ??= [];
+  while (state.vehicleMarket.length < VEHICLE_MARKET_SIZE) {
+    reshuffleDiscardIntoDeck(state);
+    const vehicleIndex = state.deck.findIndex((card) => card.type === "Vehicle");
+    if (vehicleIndex === -1) {
+      return;
+    }
+    const [vehicle] = state.deck.splice(vehicleIndex, 1);
+    state.vehicleMarket.push(vehicle);
+  }
+};
+
+const tickCustomerPatience = (state, player) => {
+  const staying = [];
+  const leaving = [];
+  player.customers.forEach((customer) => {
+    const patienceRemaining = (customer.patienceRemaining ?? DEFAULT_CUSTOMER_PATIENCE) - 1;
+    if (patienceRemaining <= 0) {
+      leaving.push(customer);
+      return;
+    }
+    staying.push({ ...customer, patienceRemaining });
+  });
+
+  if (!leaving.length) {
+    player.customers = staying;
+    return;
+  }
+
+  player.customers = staying;
+  discardCards(state, leaving);
+  pushLog(
+    state,
+    `${leaving.map((customer) => customer.name).join(", ")} left ${player.name}'s showroom after waiting too long.`
+  );
+};
 
 const gainCash = (state, player, amount, reason) => {
   if (!amount) {
@@ -360,21 +436,39 @@ const buildCardActions = (state, player, card) => {
   return [];
 };
 
+const saleModes = ["standard", "discount", "markup"];
+
 const buildSaleActions = (state, player) =>
   player.customers.flatMap((customer) =>
-    player.vehicles.map((vehicle) => ({
-      cardUid: null,
-      cardName: "Close Sale",
-      cardType: "Sale",
-      cardValue: String(computeSaleValue(player, customer, vehicle)),
-      action: {
-        label: `Sell ${vehicle.name} to ${customer.name} (+${computeSaleValue(player, customer, vehicle)} cash)`,
-        kind: "close-sale",
-        customerUid: customer.uid,
-        vehicleUid: vehicle.uid
-      }
-    }))
+    player.vehicles.flatMap((vehicle) =>
+      saleModes.map((mode) => ({
+        cardUid: null,
+        cardName: "Close Sale",
+        cardType: "Sale",
+        cardValue: String(computeSaleValue(player, customer, vehicle, mode)),
+        action: {
+          label: `${saleModeLabel(mode)} ${vehicle.name} to ${customer.name} (+${computeSaleValue(player, customer, vehicle, mode)} cash, ${saleRepDelta(mode) >= 0 ? "+" : ""}${saleRepDelta(mode)} rep)`,
+          kind: "close-sale",
+          saleMode: mode,
+          customerUid: customer.uid,
+          vehicleUid: vehicle.uid
+        }
+      }))
+    )
   );
+
+const buildMarketActions = (state) =>
+  (state.vehicleMarket ?? []).map((vehicle) => ({
+    cardUid: vehicle.uid,
+    cardName: vehicle.name,
+    cardType: "Vehicle Market",
+    cardValue: vehicle.value,
+    action: {
+      label: `Acquire ${vehicle.name} from market`,
+      kind: "acquire-market-vehicle",
+      vehicleUid: vehicle.uid
+    }
+  }));
 
 export const createGameState = ({ roomCode, hostPlayerId = null }) => ({
   roomCode,
@@ -387,6 +481,7 @@ export const createGameState = ({ roomCode, hostPlayerId = null }) => ({
   currentPlayerId: null,
   actionsRemaining: 0,
   deck: [],
+  vehicleMarket: [],
   discard: [],
   log: [],
   winner: null,
@@ -471,6 +566,7 @@ export const beginTurn = (inputState) => {
   }
 
   const player = getCurrentPlayer(state);
+  tickCustomerPatience(state, player);
 
   const turnCash = salesTeamAmount(player, "turn-cash");
   if (turnCash) {
@@ -499,6 +595,7 @@ export const startGame = (inputState) => {
   state.status = "active";
   state.startedAt = new Date().toISOString();
   state.deck = cloneDeck();
+  state.vehicleMarket = [];
   state.discard = [];
   state.log = [];
   state.winner = null;
@@ -515,6 +612,7 @@ export const startGame = (inputState) => {
   state.players
     .sort((left, right) => left.seatIndex - right.seatIndex)
     .forEach((player) => drawCards(state, player, OPENING_HAND_SIZE));
+  refillVehicleMarket(state);
 
   pushLog(state, `A fresh Dealership Wars match has started. First dealership to ${CASH_TARGET} cash wins.`);
   return beginTurn(state);
@@ -536,7 +634,7 @@ export const buildLegalActions = (state, playerId) => {
     }))
   );
 
-  return [...handActions, ...buildSaleActions(state, player)];
+  return [...handActions, ...buildMarketActions(state), ...buildSaleActions(state, player)];
 };
 
 const consumeAction = (state) => {
@@ -592,7 +690,7 @@ export const applyAction = (inputState, playerId, submitted) => {
     }
     const customer = player.customers[customerIndex];
     const [vehicle] = player.vehicles.splice(vehicleIndex, 1);
-    const saleValue = computeSaleValue(player, customer, vehicle);
+    const saleValue = computeSaleValue(player, customer, vehicle, action.saleMode);
 
     player.salesClosed += 1;
     discardCards(state, [vehicle]);
@@ -604,10 +702,28 @@ export const applyAction = (inputState, playerId, submitted) => {
     }
 
     consumeAction(state);
+    const modeReason = action.saleMode === "discount"
+      ? "The customer got a discount and left happy."
+      : action.saleMode === "markup"
+        ? "The gross was strong, but the customer noticed the markup."
+        : "A happy customer drove off the lot.";
     gainCash(state, player, saleValue, `${player.name} sold ${vehicle.name} to ${customer.name}.`);
-    if (!state.winner) {
-      gainRep(state, player, 1, "A happy customer drove off the lot.");
+    if (!state.winner || saleRepDelta(action.saleMode) < 0) {
+      gainRep(state, player, saleRepDelta(action.saleMode), modeReason);
     }
+    return state;
+  }
+
+  if (action.kind === "acquire-market-vehicle") {
+    const vehicleIndex = state.vehicleMarket.findIndex((vehicle) => vehicle.uid === action.vehicleUid);
+    if (vehicleIndex === -1) {
+      throw new Error("That vehicle is no longer available.");
+    }
+    const [vehicle] = state.vehicleMarket.splice(vehicleIndex, 1);
+    player.vehicles.push(vehicle);
+    consumeAction(state);
+    pushLog(state, `${player.name} acquired ${vehicle.name} from the shared market.`);
+    refillVehicleMarket(state);
     return state;
   }
 
@@ -617,7 +733,7 @@ export const applyAction = (inputState, playerId, submitted) => {
   }
 
   if (action.kind === "recruit") {
-    player.customers.push(card);
+    player.customers.push(prepareCustomer(card));
     consumeAction(state);
     pushLog(state, `${player.name} recruited ${card.name} into the showroom.`);
     if (card.rep) {

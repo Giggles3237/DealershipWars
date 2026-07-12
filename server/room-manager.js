@@ -240,6 +240,12 @@ export class RoomManager {
 
     if (action.kind === "close-sale") {
       score += 150 + cardValue * 8 + (weights.closeSale ?? 0);
+      if (action.saleMode === "markup") {
+        score += player.reputation > 0 ? 18 : -12;
+      }
+      if (action.saleMode === "discount") {
+        score += player.reputation < 4 ? 18 : 4;
+      }
     }
 
     if (action.kind === "recruit") {
@@ -250,6 +256,13 @@ export class RoomManager {
       score += 45 + cardValue * 4 + (weights.vehicle ?? 0);
       if (player.customers.length > 0) {
         score += (weights.closeSale ?? 0) / 2;
+      }
+    }
+
+    if (action.kind === "acquire-market-vehicle") {
+      score += 58 + cardValue * 5 + (weights.vehicle ?? 0);
+      if (player.customers.length > 0) {
+        score += 20 + (weights.closeSale ?? 0) / 2;
       }
     }
 
